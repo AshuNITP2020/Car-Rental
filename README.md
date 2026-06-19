@@ -63,7 +63,7 @@ can finish in a sitting; you can stop after any task with a working system.
 
 - [x] **#1** Confirm JDK 17 + init Git repo
 - [x] **#2** Scaffold Spring Boot backend (`backend/`, Spring Boot 4.1, Gradle, runnable; `/actuator/health` → UP)
-- [ ] **#3** Scaffold React frontend
+- [x] **#3** Scaffold React frontend (`frontend/`, React + TS + Tailwind v4 + Vite, runs on :5173)
 - [ ] **#4** docker-compose: Postgres + Redis
 - [ ] **#5** Walking skeleton (end-to-end slice)
 
