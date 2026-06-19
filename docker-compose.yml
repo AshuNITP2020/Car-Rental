@@ -1,0 +1,51 @@
+# Local dev infrastructure for the Car Rental Marketplace.
+#   docker compose up -d        → start Postgres + Redis in the background
+#   docker compose ps           → see status / health
+#   docker compose logs -f      → tail logs
+#   docker compose down         → stop & remove containers (data survives in volumes)
+#   docker compose down -v      → also delete the data volumes (fresh start)
+#
+# Credentials default to dev-only values below; override via a .env file
+# (see .env.example). NEVER use these defaults in production.
+
+services:
+  postgres:
+    # PostGIS image = standard Postgres + PostGIS preinstalled, and includes
+    # btree_gist (needed by the booking exclusion constraint in Phase 2).
+    image: postgis/postgis:16-3.4
+    container_name: carrental-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-carrental}
+      POSTGRES_USER: ${POSTGRES_USER:-carrental}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-carrental}
+    ports:
+      # Host 55432 -> container 5432. Native Postgres clusters already occupy
+      # 5432/5433 on this machine, so we use a high port well clear of them.
+      # The backend connects to localhost:55432.
+      - "${POSTGRES_PORT:-55432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-carrental} -d ${POSTGRES_DB:-carrental}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: carrental-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
