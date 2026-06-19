@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: car-rental-backend
+
+server:
+  port: 8080
+
+# Actuator: expose health (and info) so we can prove the app is up.
+# More endpoints get exposed deliberately later (metrics in P7).
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
