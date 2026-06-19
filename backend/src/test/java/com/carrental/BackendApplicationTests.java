@@ -1,4 +1,4 @@
-package com.cardrental;
+package com.carrental;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

@@ -1,4 +1,4 @@
-package com.cardrental;
+package com.carrental;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
