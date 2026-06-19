@@ -16,8 +16,8 @@ services:
     container_name: carrental-postgres
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-carrental}
-      POSTGRES_USER: ${POSTGRES_USER:-carrental}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-carrental}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
       # Host 55432 -> container 5432. Native Postgres clusters already occupy
       # 5432/5433 on this machine, so we use a high port well clear of them.
@@ -26,7 +26,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-carrental} -d ${POSTGRES_DB:-carrental}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-carrental}"]
       interval: 5s
       timeout: 5s
       retries: 10
