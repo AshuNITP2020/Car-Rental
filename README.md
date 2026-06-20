@@ -69,4 +69,13 @@ can finish in a sitting; you can stop after any task with a working system.
 
 **🎉 Phase 0 complete — the full stack is wired and proven end-to-end.**
 
-_Full 47-task checklist lives in the build plan; tasks #6+ are tracked as we reach each phase._
+### Phase 1 — Domain, auth & multi-tenancy
+- [x] **#6** Core entities + first Flyway migration (`V1__core_entities.sql`: users, agency, agency_member, car; JPA entities; Hibernate `ddl-auto=validate`)
+- [ ] **#7** JWT auth (register/login)
+- [ ] **#8** RBAC roles and guards
+- [ ] **#9** Multi-tenancy scoping
+- [ ] **#10** Agency CRUD (API + UI)
+- [ ] **#11** Car CRUD (agency-side)
+- [ ] **#12** Datafaker seed script
+
+_Full 47-task checklist lives in the build plan; later tasks are tracked as we reach each phase._

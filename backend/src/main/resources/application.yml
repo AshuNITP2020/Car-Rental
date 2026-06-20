@@ -10,6 +10,26 @@ spring:
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:postgres}
 
+  jpa:
+    hibernate:
+      # Flyway owns the schema. Hibernate must NEVER change it — only verify
+      # that the @Entity classes match the Flyway-built tables, and fail fast
+      # on any drift.
+      ddl-auto: validate
+    open-in-view: false        # don't hold DB connections open during view render
+    show-sql: false            # flip to true to see generated SQL during dev
+    properties:
+      hibernate.format_sql: true
+
+  flyway:
+    enabled: true
+    # PostGIS already populated the public schema (spatial_ref_sys etc.), so on
+    # first run Flyway baselines the existing objects, then applies V1 onward.
+    baseline-on-migrate: true
+    # Baseline at version 0 so our V1 migration is still applied. (The default
+    # baseline version is 1, which would mark V1 as already-done and skip it.)
+    baseline-version: 0
+
 server:
   port: 8080
 

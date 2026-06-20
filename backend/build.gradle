@@ -21,9 +21,13 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
-	// JDBC + Postgres driver for the walking skeleton's DB ping.
-	// Full JPA/Hibernate + Flyway arrive in Task #6 with the first entities.
-	implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+	// JPA/Hibernate for entity mapping (includes spring-jdbc -> JdbcTemplate).
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	// Flyway owns the schema. In Spring Boot 4 the autoconfiguration lives in
+	// the spring-boot-flyway module (it pulls flyway-core transitively);
+	// flyway-database-postgresql adds Postgres-specific support.
+	implementation 'org.springframework.boot:spring-boot-flyway'
+	implementation 'org.flywaydb:flyway-database-postgresql'
 	runtimeOnly 'org.postgresql:postgresql'
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
