@@ -65,6 +65,17 @@ can finish in a sitting; you can stop after any task with a working system.
 - [x] **#2** Scaffold Spring Boot backend (`backend/`, Spring Boot 4.1, Gradle, runnable; `/actuator/health` → UP)
 - [x] **#3** Scaffold React frontend (`frontend/`, React + TS + Tailwind v4 + Vite, runs on :5173)
 - [x] **#4** docker-compose: Postgres + Redis (PostGIS image on host `:55432`, Redis `:6379`; both healthy)
-- [ ] **#5** Walking skeleton (end-to-end slice)
+- [x] **#5** Walking skeleton (React → `/api/health` → Spring → Postgres `now()`, verified end-to-end)
 
-_Full 47-task checklist lives in the build plan; tasks #6+ are tracked as we reach each phase._
+**🎉 Phase 0 complete — the full stack is wired and proven end-to-end.**
+
+### Phase 1 — Domain, auth & multi-tenancy
+- [x] **#6** Core entities + first Flyway migration (`V1__core_entities.sql`: users, agency, agency_member, car; JPA entities; Hibernate `ddl-auto=validate`)
+- [x] **#7** JWT auth (register/login/refresh; Spring Security stateless, BCrypt, access+refresh tokens, `/api/me`)
+- [ ] **#8** RBAC roles and guards
+- [ ] **#9** Multi-tenancy scoping
+- [ ] **#10** Agency CRUD (API + UI)
+- [ ] **#11** Car CRUD (agency-side)
+- [ ] **#12** Datafaker seed script
+
+_Full 47-task checklist lives in the build plan; later tasks are tracked as we reach each phase._

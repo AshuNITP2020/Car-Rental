@@ -2,8 +2,44 @@ spring:
   application:
     name: car-rental-backend
 
+  # Connects to the Postgres container from docker-compose (host port 55432).
+  # Values are overridable via env vars so they never have to be hardcoded
+  # for other environments. Defaults match docker-compose.yml dev creds.
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:55432/carrental}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+
+  jpa:
+    hibernate:
+      # Flyway owns the schema. Hibernate must NEVER change it — only verify
+      # that the @Entity classes match the Flyway-built tables, and fail fast
+      # on any drift.
+      ddl-auto: validate
+    open-in-view: false        # don't hold DB connections open during view render
+    show-sql: false            # flip to true to see generated SQL during dev
+    properties:
+      hibernate.format_sql: true
+
+  flyway:
+    enabled: true
+    # PostGIS already populated the public schema (spatial_ref_sys etc.), so on
+    # first run Flyway baselines the existing objects, then applies V1 onward.
+    baseline-on-migrate: true
+    # Baseline at version 0 so our V1 migration is still applied. (The default
+    # baseline version is 1, which would mark V1 as already-done and skip it.)
+    baseline-version: 0
+
 server:
   port: 8080
+
+# JWT settings. The dev secret is fine locally but MUST be overridden in any
+# real environment via JWT_SECRET (HS256 needs >= 32 bytes / 256 bits).
+app:
+  jwt:
+    secret: ${JWT_SECRET:dev-only-secret-please-change-this-to-a-long-random-value-32b+}
+    access-minutes: 15
+    refresh-days: 7
 
 # Actuator: expose health (and info) so we can prove the app is up.
 # More endpoints get exposed deliberately later (metrics in P7).
