@@ -5,6 +5,8 @@ import com.carrental.auth.dto.LoginRequest;
 import com.carrental.auth.dto.RefreshRequest;
 import com.carrental.auth.dto.RegisterRequest;
 import com.carrental.auth.dto.UserResponse;
+import com.carrental.agency.AgencyMember;
+import com.carrental.agency.AgencyMemberRepository;
 import com.carrental.user.User;
 import com.carrental.user.UserRepository;
 import io.jsonwebtoken.Claims;
@@ -19,11 +21,14 @@ import org.springframework.web.server.ResponseStatusException;
 public class AuthService {
 
     private final UserRepository users;
+    private final AgencyMemberRepository agencyMembers;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
-    public AuthService(UserRepository users, PasswordEncoder passwordEncoder, JwtService jwtService) {
+    public AuthService(UserRepository users, AgencyMemberRepository agencyMembers,
+                       PasswordEncoder passwordEncoder, JwtService jwtService) {
         this.users = users;
+        this.agencyMembers = agencyMembers;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
     }
@@ -73,8 +78,12 @@ public class AuthService {
     }
 
     private AuthResponse tokensFor(User user) {
+        // Resolve the tenant context (if any) and bake it into the access token.
+        var membership = agencyMembers.findFirstByUser_IdOrderByIdAsc(user.getId());
+        Long agencyId = membership.map(m -> m.getAgency().getId()).orElse(null);
+        String agencyRole = membership.map(AgencyMember::getRole).map(Enum::name).orElse(null);
         return new AuthResponse(
-                jwtService.generateAccessToken(user),
+                jwtService.generateAccessToken(user, agencyId, agencyRole),
                 jwtService.generateRefreshToken(user),
                 "Bearer",
                 jwtService.accessTtlSeconds(),

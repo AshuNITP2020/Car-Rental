@@ -36,28 +36,39 @@ public class JwtService {
         this.refreshTtl = Duration.ofDays(props.refreshDays());
     }
 
-    public String generateAccessToken(User user) {
-        return build(user, TYPE_ACCESS, accessTtl);
+    /**
+     * Access token carries the tenant context too: which agency the user acts
+     * for (agencyId) and their role within it (agencyRole). Both may be null
+     * for a user who belongs to no agency (e.g. a plain customer).
+     */
+    public String generateAccessToken(User user, Long agencyId, String agencyRole) {
+        return build(user, TYPE_ACCESS, accessTtl, agencyId, agencyRole);
     }
 
     public String generateRefreshToken(User user) {
-        return build(user, TYPE_REFRESH, refreshTtl);
+        return build(user, TYPE_REFRESH, refreshTtl, null, null);
     }
 
     public long accessTtlSeconds() {
         return accessTtl.toSeconds();
     }
 
-    private String build(User user, String type, Duration ttl) {
+    private String build(User user, String type, Duration ttl, Long agencyId, String agencyRole) {
         Instant now = Instant.now();
-        return Jwts.builder()
+        var builder = Jwts.builder()
                 .subject(String.valueOf(user.getId()))
                 .claim("email", user.getEmail())
+                .claim("role", user.getRole().name())
                 .claim("type", type)
                 .issuedAt(Date.from(now))
-                .expiration(Date.from(now.plus(ttl)))
-                .signWith(key)
-                .compact();
+                .expiration(Date.from(now.plus(ttl)));
+        if (agencyId != null) {
+            builder.claim("agencyId", agencyId);
+        }
+        if (agencyRole != null) {
+            builder.claim("agencyRole", agencyRole);
+        }
+        return builder.signWith(key).compact();
     }
 
     /** Parses and verifies the signature/expiry; throws if invalid. */
@@ -75,5 +86,18 @@ public class JwtService {
 
     public String tokenType(Claims claims) {
         return claims.get("type", String.class);
+    }
+
+    public String role(Claims claims) {
+        return claims.get("role", String.class);
+    }
+
+    public Long agencyId(Claims claims) {
+        Number n = claims.get("agencyId", Number.class);
+        return n == null ? null : n.longValue();
+    }
+
+    public String agencyRole(Claims claims) {
+        return claims.get("agencyRole", String.class);
     }
 }

@@ -1,5 +1,6 @@
 package com.carrental.user;
 
+import com.carrental.auth.AuthPrincipal;
 import com.carrental.auth.dto.UserResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -20,8 +21,8 @@ public class MeController {
     }
 
     @GetMapping("/me")
-    public UserResponse me(@AuthenticationPrincipal Long userId) {
-        return users.findById(userId)
+    public UserResponse me(@AuthenticationPrincipal AuthPrincipal principal) {
+        return users.findById(principal.userId())
                 .map(UserResponse::from)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
     }

@@ -59,6 +59,7 @@ public class Car {
     @Column(name = "price_per_day", nullable = false, precision = 10, scale = 2)
     private BigDecimal pricePerDay;
 
+    //TODO: Consider using separate entity for Gis Based Location
     private Double latitude;
 
     private Double longitude;

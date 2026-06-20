@@ -47,9 +47,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 Claims claims = jwtService.parse(token);
                 if (JwtService.TYPE_ACCESS.equals(jwtService.tokenType(claims))) {
                     Long userId = jwtService.userId(claims);
-                    // Authorities are a placeholder until RBAC (Task #8).
+                    String role = jwtService.role(claims);
+                    if (role == null) {
+                        role = "CUSTOMER";
+                    }
+
+                    var principal = new AuthPrincipal(
+                            userId, role, jwtService.agencyId(claims), jwtService.agencyRole(claims));
                     var auth = new UsernamePasswordAuthenticationToken(
-                            userId, null, List.of(new SimpleGrantedAuthority("ROLE_USER")));
+                            principal, null, List.of(new SimpleGrantedAuthority("ROLE_" + role)));
                     auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(auth);
                 }
