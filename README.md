@@ -72,7 +72,7 @@ can finish in a sitting; you can stop after any task with a working system.
 ### Phase 1 — Domain, auth & multi-tenancy
 - [x] **#6** Core entities + first Flyway migration (`V1__core_entities.sql`: users, agency, agency_member, car; JPA entities; Hibernate `ddl-auto=validate`)
 - [x] **#7** JWT auth (register/login/refresh; Spring Security stateless, BCrypt, access+refresh tokens, `/api/me`)
-- [ ] **#8** RBAC roles and guards
+- [x] **#8** RBAC roles and guards (`V2` adds platform `role`; JWT `role` claim → authority; `@PreAuthorize` + URL guard on `/api/admin/**`)
 - [ ] **#9** Multi-tenancy scoping
 - [ ] **#10** Agency CRUD (API + UI)
 - [ ] **#11** Car CRUD (agency-side)

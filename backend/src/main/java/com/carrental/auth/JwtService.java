@@ -53,6 +53,7 @@ public class JwtService {
         return Jwts.builder()
                 .subject(String.valueOf(user.getId()))
                 .claim("email", user.getEmail())
+                .claim("role", user.getRole().name())
                 .claim("type", type)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plus(ttl)))
@@ -75,5 +76,9 @@ public class JwtService {
 
     public String tokenType(Claims claims) {
         return claims.get("type", String.class);
+    }
+
+    public String role(Claims claims) {
+        return claims.get("role", String.class);
     }
 }

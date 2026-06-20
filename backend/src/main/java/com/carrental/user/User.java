@@ -18,7 +18,7 @@ import java.time.OffsetDateTime;
 
 /** A person on the platform: customer, agency staff/admin, or platform admin. */
 @Entity
-@Table(name = "users") // "user" is a reserved word in Postgres
+@Table(name = "users")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -43,6 +43,10 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(name = "kyc_status", nullable = false, length = 20)
     private KycStatus kycStatus = KycStatus.PENDING;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private UserRole role = UserRole.CUSTOMER;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

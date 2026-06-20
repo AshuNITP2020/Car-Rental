@@ -8,7 +8,8 @@ public record UserResponse(
         String name,
         String email,
         String phone,
-        String kycStatus
+        String kycStatus,
+        String role
 ) {
     public static UserResponse from(User user) {
         return new UserResponse(
@@ -16,6 +17,7 @@ public record UserResponse(
                 user.getName(),
                 user.getEmail(),
                 user.getPhone(),
-                user.getKycStatus().name());
+                user.getKycStatus().name(),
+                user.getRole().name());
     }
 }
