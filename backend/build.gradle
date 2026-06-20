@@ -21,14 +21,17 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
-	// JPA/Hibernate for entity mapping (includes spring-jdbc -> JdbcTemplate).
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-	// Flyway owns the schema. In Spring Boot 4 the autoconfiguration lives in
-	// the spring-boot-flyway module (it pulls flyway-core transitively);
-	// flyway-database-postgresql adds Postgres-specific support.
 	implementation 'org.springframework.boot:spring-boot-flyway'
 	implementation 'org.flywaydb:flyway-database-postgresql'
 	runtimeOnly 'org.postgresql:postgresql'
+
+	//Authentication/Authorization.
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-actuator-test'

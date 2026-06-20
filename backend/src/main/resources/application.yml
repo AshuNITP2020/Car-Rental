@@ -33,6 +33,14 @@ spring:
 server:
   port: 8080
 
+# JWT settings. The dev secret is fine locally but MUST be overridden in any
+# real environment via JWT_SECRET (HS256 needs >= 32 bytes / 256 bits).
+app:
+  jwt:
+    secret: ${JWT_SECRET:dev-only-secret-please-change-this-to-a-long-random-value-32b+}
+    access-minutes: 15
+    refresh-days: 7
+
 # Actuator: expose health (and info) so we can prove the app is up.
 # More endpoints get exposed deliberately later (metrics in P7).
 management:
