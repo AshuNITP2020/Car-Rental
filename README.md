@@ -73,9 +73,9 @@ can finish in a sitting; you can stop after any task with a working system.
 - [x] **#6** Core entities + first Flyway migration (`V1__core_entities.sql`: users, agency, agency_member, car; JPA entities; Hibernate `ddl-auto=validate`)
 - [x] **#7** JWT auth (register/login/refresh; Spring Security stateless, BCrypt, access+refresh tokens, `/api/me`)
 - [x] **#8** RBAC roles and guards (`V2` adds platform `role`; JWT `role` claim → authority; `@PreAuthorize` + URL guard on `/api/admin/**`)
-- [ ] **#9** Multi-tenancy scoping
-- [ ] **#10** Agency CRUD (API + UI)
-- [ ] **#11** Car CRUD (agency-side)
+- [x] **#9** Multi-tenancy scoping (JWT carries `agencyId`/`agencyRole`; `AuthPrincipal` + `TenantContext`; `/api/agency/cars` scoped — agency sees only its own data)
+- [x] **#10** Agency CRUD (API) — create (caller becomes ADMIN member), GET/PUT `/api/agencies/me` (admin-only update), GET `/api/agencies/{id}`
+- [x] **#11** Car CRUD (agency-side) — `/api/agency/cars` create/list/get/update (any member), delete (ADMIN); tenant-scoped, cross-tenant access → 404, dup regNo → 409
 - [ ] **#12** Datafaker seed script
 
 _Full 47-task checklist lives in the build plan; later tasks are tracked as we reach each phase._

@@ -47,14 +47,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 Claims claims = jwtService.parse(token);
                 if (JwtService.TYPE_ACCESS.equals(jwtService.tokenType(claims))) {
                     Long userId = jwtService.userId(claims);
-                    // Platform role -> Spring authority "ROLE_<role>" (default
-                    // CUSTOMER for older tokens issued before the role claim).
-                    String role = claims.get("role", String.class);
+                    String role = jwtService.role(claims);
                     if (role == null) {
                         role = "CUSTOMER";
                     }
+
+                    var principal = new AuthPrincipal(
+                            userId, role, jwtService.agencyId(claims), jwtService.agencyRole(claims));
                     var auth = new UsernamePasswordAuthenticationToken(
-                            userId, null, List.of(new SimpleGrantedAuthority("ROLE_" + role)));
+                            principal, null, List.of(new SimpleGrantedAuthority("ROLE_" + role)));
                     auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(auth);
                 }
