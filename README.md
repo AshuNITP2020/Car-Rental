@@ -76,6 +76,8 @@ can finish in a sitting; you can stop after any task with a working system.
 - [x] **#9** Multi-tenancy scoping (JWT carries `agencyId`/`agencyRole`; `AuthPrincipal` + `TenantContext`; `/api/agency/cars` scoped — agency sees only its own data)
 - [x] **#10** Agency CRUD (API) — create (caller becomes ADMIN member), GET/PUT `/api/agencies/me` (admin-only update), GET `/api/agencies/{id}`
 - [x] **#11** Car CRUD (agency-side) — `/api/agency/cars` create/list/get/update (any member), delete (ADMIN); tenant-scoped, cross-tenant access → 404, dup regNo → 409
-- [ ] **#12** Datafaker seed script
+- [x] **#12** Datafaker seed script (gated `app.seed.enabled=true`; ~1k customers, 200 agencies, 5k cars across 10 cities)
+
+**🎉 Phase 1 complete — domain, auth, RBAC, multi-tenancy, agency/car CRUD, and bulk seed data.**
 
 _Full 47-task checklist lives in the build plan; later tasks are tracked as we reach each phase._
