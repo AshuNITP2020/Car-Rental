@@ -37,6 +37,20 @@ public class BookingController {
                 .body(bookingService.create(principal.userId(), req));
     }
 
+    @PostMapping("/pessimistic")
+    public ResponseEntity<BookingResponse> createPessimistic(@AuthenticationPrincipal AuthPrincipal principal,
+                                                             @Valid @RequestBody CreateBookingRequest req) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(bookingService.createPessimistic(principal.userId(), req));
+    }
+
+    @PostMapping("/optimistic")
+    public ResponseEntity<BookingResponse> createOptimistic(@AuthenticationPrincipal AuthPrincipal principal,
+                                                            @Valid @RequestBody CreateBookingRequest req) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(bookingService.createOptimistic(principal.userId(), req));
+    }
+
     @GetMapping
     public List<BookingResponse> myBookings(@AuthenticationPrincipal AuthPrincipal principal) {
         return bookingService.listForUser(principal.userId());
