@@ -1,0 +1,349 @@
+<title>Booking Engine Internals — Preventing Double-Booking</title>
+<style>
+  :root{
+    --ground:#EEF1F5; --surface:#FFFFFF; --ink:#15202B; --muted:#566776;
+    --line:#D6DDE5; --accent:#0B6BCB; --accent-soft:#E2ECF9;
+    --ok:#1F9E6B; --bad:#E0533D; --warn:#B97A12;
+    --panel:#0E1726; --panel-text:#C9D6E5; --panel-dim:#7E8DA1; --panel-line:#24324A;
+    --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono","Cascadia Code","JetBrains Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+  body{
+    margin:0;background:var(--ground);color:var(--ink);
+    font-family:var(--sans);font-size:16.5px;line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:var(--mono)}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:3px}
+
+  /* ---------- hero ---------- */
+  header.hero{
+    background:
+      linear-gradient(180deg,#fff, #F4F7FB);
+    border-bottom:1px solid var(--line);
+    padding:64px 24px 52px;
+  }
+  .hero-inner{max-width:1080px;margin:0 auto}
+  .eyebrow{
+    font-family:var(--mono);font-size:.72rem;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--accent);font-weight:600;
+  }
+  .hero h1{
+    font-size:clamp(2rem,4.6vw,3.3rem);line-height:1.05;letter-spacing:-.025em;
+    margin:14px 0 0;font-weight:760;max-width:16ch;
+  }
+  .hero p.lede{font-size:1.12rem;color:var(--muted);max-width:60ch;margin:18px 0 0}
+
+  /* ---------- hero range diagram ---------- */
+  .rangefig{
+    margin-top:38px;background:var(--panel);border:1px solid var(--panel-line);
+    border-radius:14px;padding:26px 26px 22px;color:var(--panel-text);
+    box-shadow:0 18px 40px -24px rgba(8,18,33,.55);
+  }
+  .rangefig .cap{font-family:var(--mono);font-size:.74rem;color:var(--panel-dim);letter-spacing:.04em;margin-bottom:18px}
+  .axis{position:relative;height:14px;margin:0 0 6px;border-bottom:1px dashed var(--panel-line)}
+  .ticks{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.7rem;color:var(--panel-dim);margin-bottom:18px}
+  .bar{position:relative;height:38px;border-radius:8px;display:flex;align-items:center;
+    padding:0 14px;font-family:var(--mono);font-size:.82rem;margin:9px 0;color:#fff;font-weight:600}
+  .bar small{font-weight:400;opacity:.82;margin-left:8px}
+  .bar.win{background:linear-gradient(90deg,#177e57,#1F9E6B);}
+  .bar.lose{background:repeating-linear-gradient(45deg,#b8412f,#b8412f 9px,#a13726 9px,#a13726 18px);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+  .overlap-note{font-family:var(--mono);font-size:.72rem;color:#F0B49E;margin-top:10px}
+  .verdict{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+  .tag{font-family:var(--mono);font-size:.72rem;padding:5px 10px;border-radius:999px;border:1px solid var(--panel-line)}
+  .tag.ok{color:#7ee0b4;border-color:#1f5e44}
+  .tag.bad{color:#f1a08c;border-color:#7a3326}
+
+  /* ---------- layout ---------- */
+  .layout{max-width:1080px;margin:0 auto;padding:0 24px;
+    display:grid;grid-template-columns:212px 1fr;gap:48px;align-items:start}
+  nav.toc{position:sticky;top:24px;padding:30px 0;font-size:.9rem}
+  nav.toc .lbl{font-family:var(--mono);font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+  nav.toc ol{list-style:none;margin:0;padding:0;counter-reset:s}
+  nav.toc li{counter-increment:s;margin:.36em 0;line-height:1.3}
+  nav.toc a{color:var(--ink);display:grid;grid-template-columns:24px 1fr;gap:6px;align-items:baseline}
+  nav.toc a::before{content:counter(s,decimal-leading-zero);font-family:var(--mono);font-size:.7rem;color:var(--accent);opacity:.8}
+  nav.toc a:hover{color:var(--accent);text-decoration:none}
+  main{padding:30px 0 90px;min-width:0;max-width:760px}
+  @media (max-width:860px){
+    .layout{grid-template-columns:1fr;gap:0}
+    nav.toc{position:static;border-bottom:1px solid var(--line);padding:22px 0}
+    nav.toc ol{columns:2;column-gap:24px}
+  }
+
+  /* ---------- prose ---------- */
+  section{padding:30px 0;border-top:1px solid var(--line)}
+  section:first-of-type{border-top:none}
+  h2{font-size:1.55rem;letter-spacing:-.02em;line-height:1.15;margin:.2em 0 .5em;font-weight:720;display:flex;gap:14px;align-items:baseline}
+  h2 .num{font-family:var(--mono);font-size:.82rem;color:var(--accent);font-weight:600;flex:none;padding-top:.35em}
+  h3{font-size:1.05rem;margin:1.5em 0 .4em;font-weight:680}
+  p{margin:.7em 0}
+  .muted{color:var(--muted)}
+  strong{font-weight:680}
+  ul,ol.steps{margin:.6em 0;padding-left:1.3em}
+  li{margin:.34em 0}
+  code{font-family:var(--mono);font-size:.86em;background:var(--accent-soft);color:#0a4f97;padding:1px 5px;border-radius:4px}
+
+  /* ---------- dark panels (code + diagrams) ---------- */
+  .panel{background:var(--panel);color:var(--panel-text);border-radius:12px;
+    border:1px solid var(--panel-line);margin:18px 0;overflow:hidden}
+  .panel .head{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--panel-dim);padding:11px 16px;border-bottom:1px solid var(--panel-line)}
+  .panel pre{margin:0;padding:16px;overflow-x:auto;font-family:var(--mono);font-size:.82rem;line-height:1.6}
+  .panel pre code{background:none;color:var(--panel-text);padding:0;font-size:1em}
+  .k{color:#6fb2ff}.s{color:#9fe0b0}.c{color:#6b7b91;font-style:italic}.n{color:#e8b06a}
+  .ok-t{color:#7ee0b4}.bad-t{color:#f1a08c}.dim-t{color:#7E8DA1}
+
+  /* ---------- callout ---------- */
+  .call{border-left:3px solid var(--accent);background:#fff;border:1px solid var(--line);
+    border-left:3px solid var(--accent);border-radius:0 10px 10px 0;padding:14px 18px;margin:18px 0}
+  .call.key{border-left-color:var(--ok);background:#F1FBF6}
+  .call .t{font-family:var(--mono);font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+
+  /* ---------- tables ---------- */
+  .tbl{overflow-x:auto;margin:18px 0;border:1px solid var(--line);border-radius:10px}
+  table{border-collapse:collapse;width:100%;min-width:520px;font-size:.9rem;background:#fff}
+  th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#F4F7FB;font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  tr:last-child td{border-bottom:none}
+  td code{font-size:.82em}
+
+  /* ---------- A/B trace ---------- */
+  .trace{margin:18px 0;border-radius:12px;overflow:hidden;border:1px solid var(--panel-line);background:var(--panel)}
+  .trace .row{display:grid;grid-template-columns:54px 1fr 1fr;border-top:1px solid var(--panel-line)}
+  .trace .row:first-child{border-top:none}
+  .trace .th{background:#16213500}
+  .trace .t{font-family:var(--mono);font-size:.72rem;color:var(--panel-dim);padding:12px 10px;border-right:1px solid var(--panel-line)}
+  .trace .cell{padding:12px 14px;font-size:.85rem;color:var(--panel-text);border-right:1px solid var(--panel-line)}
+  .trace .cell:last-child{border-right:none}
+  .trace .colh{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--panel-dim);padding:10px 14px;border-right:1px solid var(--panel-line)}
+  .trace .colh:first-child{border-right:1px solid var(--panel-line)}
+  .trace .a{color:#7ee0b4}.trace .b{color:#f1a08c}
+  .wait{color:var(--warn)}
+
+  /* overlap operator mini */
+  .opfig{display:flex;flex-direction:column;gap:10px;font-family:var(--mono);font-size:.82rem}
+  .opline{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .opline .res{font-weight:700}
+  .opline .res.t{color:var(--ok)}.opline .res.f{color:var(--bad)}
+
+  footer{max-width:1080px;margin:0 auto;padding:30px 24px 60px;color:var(--muted);font-size:.82rem;
+    border-top:1px solid var(--line);font-family:var(--mono)}
+</style>
+
+<header class="hero">
+  <div class="hero-inner">
+    <div class="eyebrow">Booking Engine · Internals</div>
+    <h1>Only one booking can ever win.</h1>
+    <p class="lede">How PostgreSQL makes double-booking the same car <em>physically impossible</em> — traced from two simultaneous clicks down to what the database does instruction by instruction.</p>
+
+    <div class="rangefig" aria-label="Two overlapping bookings for car #7; one is committed, one is rejected">
+      <div class="cap">CAR #7 — two requests arrive at the same instant</div>
+      <div class="ticks"><span>Jun 21</span><span>Jun 22</span><span>Jun 23</span><span>Jun 24</span><span>Jun 25</span></div>
+      <div class="bar win" style="margin-left:0;width:62%">A · Jun 21–24 <small>COMMITTED ✓</small></div>
+      <div class="bar lose" style="margin-left:24%;width:62%">B · Jun 22–25 <small>REJECTED · 23P01 ✗</small></div>
+      <div class="overlap-note">▲ the ranges share Jun 22–24 → <code style="background:none;color:#f1a08c">car_id = AND range &amp;&amp;</code> → the database refuses B</div>
+      <div class="verdict">
+        <span class="tag ok">exactly one commits</span>
+        <span class="tag bad">every conflicting insert fails</span>
+        <span class="tag">no application race to lose</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+  <nav class="toc" aria-label="Contents">
+    <div class="lbl">Contents</div>
+    <ol>
+      <li><a href="#s1">The one problem</a></li>
+      <li><a href="#s2">Four building blocks</a></li>
+      <li><a href="#s3">The naive bug</a></li>
+      <li><a href="#s4">Transactions &amp; locks</a></li>
+      <li><a href="#s5">What an index is</a></li>
+      <li><a href="#s6">Three ways to enforce it</a></li>
+      <li><a href="#s7">EXCLUDE, internally</a></li>
+      <li><a href="#s8">Why btree_gist</a></li>
+      <li><a href="#s9">Two concurrent bookings</a></li>
+      <li><a href="#s10">Application layers</a></li>
+      <li><a href="#s11">Alternatives compared</a></li>
+      <li><a href="#s12">Glossary</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <section id="s1">
+      <h2><span class="num">01</span> The one problem we are solving</h2>
+      <p>Two customers click <strong>“Book car #7 for Jun 21–24”</strong> at almost the same instant. The system must let <strong>exactly one</strong> succeed and reject the other. Nothing more.</p>
+      <p>Everything below is about <em>how to guarantee that</em> — even when requests land in the same millisecond, possibly on different servers.</p>
+    </section>
+
+    <section id="s2">
+      <h2><span class="num">02</span> Four building blocks, in plain language</h2>
+      <div class="tbl"><table>
+        <tr><th>Term</th><th>Everyday analogy</th><th>What it really is</th></tr>
+        <tr><td><strong>Table</strong></td><td>a spreadsheet</td><td><code>booking</code> — one row per reservation (car, dates, who, status)</td></tr>
+        <tr><td><strong>Transaction</strong></td><td>all-or-nothing checkout</td><td>statements that either all commit or all roll back</td></tr>
+        <tr><td><strong>Index</strong></td><td>A–Z dividers in a filing cabinet</td><td>a side structure to find/relate rows fast — and a precise place to lock</td></tr>
+        <tr><td><strong>Lock</strong></td><td>the “occupied” sign on a door</td><td>a marker that makes a second writer <em>wait</em> for the first</td></tr>
+        <tr><td><strong>Constraint</strong></td><td>a rule the sheet won’t break</td><td>e.g. “no two overlapping bookings per car”</td></tr>
+      </table></div>
+      <p class="muted">You never operate indexes or locks by hand — the database does. You declare the <em>rule</em>; it handles the rest.</p>
+    </section>
+
+    <section id="s3">
+      <h2><span class="num">03</span> The naive solution and its hidden bug</h2>
+      <p>The obvious code — and a real alternative — is “check, then insert”:</p>
+      <div class="panel"><div class="head">app pseudocode</div><pre><code><span class="n">1.</span> SELECT — any booking for car 7 overlapping Jun 21–24?
+<span class="n">2.</span> if none → INSERT the new booking</code></pre></div>
+      <p>Correct only when requests are spread out. Under simultaneous clicks, step 1 and step 2 are two separate trips, and the gap between them is the hole:</p>
+      <div class="panel"><div class="head">the race · time flows downward</div><pre><code>A: SELECT "free?" → <span class="ok-t">"free"</span>
+B:        SELECT "free?" → <span class="ok-t">"free"</span>   <span class="c">← B checks before A inserts</span>
+A:                 INSERT <span class="ok-t">✓</span>
+B:                         INSERT <span class="ok-t">✓</span>   <span class="bad-t">← DOUBLE BOOKING</span></code></pre></div>
+      <p>Both <strong>checked</strong> before either <strong>inserted</strong>. This is a <strong>TOCTOU race</strong> — time-of-check to time-of-use. The whole engine exists to close that window.</p>
+    </section>
+
+    <section id="s4">
+      <h2><span class="num">04</span> How databases stop races: transactions + locks</h2>
+      <h3>Transactions — atomicity &amp; isolation</h3>
+      <p>A transaction is a bubble: its changes are invisible to others until it <strong>commits</strong>, and a <strong>rollback</strong> makes it as if nothing happened. A half-finished booking is never seen by anyone else.</p>
+      <h3>Locks — serialize the dangerous bit</h3>
+      <p>When two transactions touch the same thing, the database makes one <strong>wait</strong> for the other. That waiting turns “both at once” into “one, then the other re-evaluates.”</p>
+      <div class="call"><div class="t">The trick</div>Make the <strong>check-and-insert a single indivisible operation guarded by a lock</strong>, so there is no gap for a second transaction to slip into.</div>
+    </section>
+
+    <section id="s5">
+      <h2><span class="num">05</span> What an index really is</h2>
+      <p>A table is just rows. Answering “is there a conflicting booking?” by reading <em>every</em> row is slow — and gives nowhere to place a lock that blocks a <em>future</em> conflicting insert. An <strong>index</strong> fixes both: fast lookups <em>and</em> a precise spot to lock. Different kinds answer different questions:</p>
+      <div class="tbl"><table>
+        <tr><th>Index</th><th>Analogy</th><th>Good at</th></tr>
+        <tr><td><strong>B-tree</strong></td><td>a sorted phone book</td><td><code>x = 5</code>, <code>x &lt; 10</code>, ranges of an ordered value</td></tr>
+        <tr><td><strong>GiST</strong></td><td>a map of nested bounding boxes</td><td><code>does this range OVERLAP that one?</code> (<code>&amp;&amp;</code>), contains</td></tr>
+      </table></div>
+      <p>This split is the whole story later: “same car” is an <strong>equality</strong> question (B-tree’s job), but “overlapping dates” is an <strong>overlap</strong> question that <em>only GiST can do</em>.</p>
+
+      <h3>What “a range” means</h3>
+      <p>Postgres has a real range type, <code>tstzrange</code>, with bounds: <code>[</code> includes, <code>)</code> excludes.</p>
+      <div class="panel"><div class="head">the overlap operator &amp;&amp;</div><pre><code class="opfig"><span class="opline">[10:00, 12:00) &amp;&amp; [11:00, 13:00)   →  <span class="res t">true</span>   <span class="c">share 11:00–12:00</span></span>
+<span class="opline">[10:00, 12:00) &amp;&amp; [12:00, 14:00)   →  <span class="res f">false</span>  <span class="c">12:00 belongs to one side → back-to-back OK</span></span></code></pre></div>
+      <p>That <code>false</code> is why a car returned at 12:00 can be re-rented from 12:00 — <code>[)</code> makes the boundary belong to exactly one booking.</p>
+    </section>
+
+    <section id="s6">
+      <h2><span class="num">06</span> The three ways to enforce “no overlap”</h2>
+      <div class="tbl"><table>
+        <tr><th>Approach</th><th>How</th><th>Pro</th><th>Con</th></tr>
+        <tr><td><strong>A · app check</strong></td><td><code>SELECT</code> then <code>INSERT</code></td><td>simplest</td><td><strong>race bug</strong> under load — toy only</td></tr>
+        <tr><td><strong>B · one row per day + UNIQUE</strong></td><td><code>(car, day)</code> rows, plain unique rule</td><td>no extension; only concepts you know</td><td>whole-day only; long booking = many rows</td></tr>
+        <tr><td><strong>C · range + EXCLUDE</strong></td><td>store the range; DB rejects overlaps</td><td>1 row/booking; any precision; how hotels/airlines do it</td><td>needs <code>EXCLUDE</code> + <code>btree_gist</code></td></tr>
+      </table></div>
+      <p>This project uses <strong>C</strong> — enforcing the rule <em>in the database</em> with ranges is the most instructive and most production-realistic. (<strong>B</strong> is a perfectly valid simpler choice and needs none of §7–§8.)</p>
+    </section>
+
+    <section id="s7">
+      <h2><span class="num">07</span> The EXCLUDE constraint, internally</h2>
+      <div class="panel"><div class="head">the rule on the booking table</div><pre><code><span class="k">EXCLUDE USING</span> gist (
+    car_id <span class="k">WITH</span> =,                              <span class="c">-- (1) same car?</span>
+    tstzrange(start_ts, end_ts, <span class="s">'[)'</span>) <span class="k">WITH</span> &amp;&amp;   <span class="c">-- (2) overlapping range?</span>
+) <span class="k">WHERE</span> (status <span class="k">IN</span> (<span class="s">'PENDING'</span>,<span class="s">'CONFIRMED'</span>,<span class="s">'ACTIVE'</span>));   <span class="c">-- (3) only active</span></code></pre></div>
+      <p><strong>Meaning:</strong> never allow two rows where <strong>(1)</strong> the car ids are equal <em>and</em> <strong>(2)</strong> their ranges overlap, among <strong>(3)</strong> still-active bookings. <code>EXCLUDE</code> is a generalized <code>UNIQUE</code> — <code>UNIQUE(email)</code> is just <code>EXCLUDE(email WITH =)</code>; here the operators are <code>=</code> <em>and</em> <code>&amp;&amp;</code> together.</p>
+
+      <h3>What happens on every insert</h3>
+      <p>The constraint is backed by <strong>one GiST index</strong> (GiST because of <code>&amp;&amp;</code>). On each matching <code>INSERT</code>/<code>UPDATE</code>, Postgres runs <code>check_exclusion_constraint</code>:</p>
+      <ol class="steps">
+        <li>Take the new row: <code>(car_id=7, range=[Jun21,Jun24))</code>.</li>
+        <li><strong>Search the GiST index</strong> for any existing row satisfying <em>all</em> operators at once (same car <em>and</em> overlap, within the <code>WHERE</code>).</li>
+        <li>Found a <strong>committed</strong> conflict → raise <code>ERROR 23P01 exclusion_violation</code>; the insert fails.</li>
+        <li>Found a conflict from a <strong>concurrent, uncommitted</strong> transaction → it can’t decide yet, so it <span class="wait"><strong>waits</strong></span> for that transaction to finish, then <strong>re-checks</strong>: if the other committed → fail; if it rolled back → proceed.</li>
+      </ol>
+      <div class="call key"><div class="t">Why this defeats the race</div>The check and the insert are <strong>one indivisible index operation</strong>, and any competitor is <strong>forced to wait and re-evaluate</strong>. There is no gap between “check” and “act” to exploit. (It’s the same mechanism a <code>UNIQUE</code> index uses to block two equal keys — <code>EXCLUDE</code> just generalizes it to <code>&amp;&amp;</code>.)</div>
+
+      <h3>The partial <code>WHERE</code></h3>
+      <p>Only <code>PENDING/CONFIRMED/ACTIVE</code> rows are indexed by the constraint. A <code>CANCELLED</code>/<code>EXPIRED</code>/<code>COMPLETED</code> booking isn’t in the index — so it neither blocks nor is checked, and the car’s slot frees the instant a booking leaves an active state.</p>
+    </section>
+
+    <section id="s8">
+      <h2><span class="num">08</span> Why the <code>btree_gist</code> extension is required</h2>
+      <p>It looks like magic but it’s a chain of forced choices:</p>
+      <div class="panel"><div class="head">the chain</div><pre><code>need overlap test <span class="n">&amp;&amp;</span>      → only <span class="ok-t">GiST</span> can do it      → index MUST be GiST
+exclusion checks all
+  conditions in ONE index → so <span class="n">car_id =</span> must also live in that GiST index
+but GiST can't do plain
+  <span class="n">=</span> on an integer        → <span class="bad-t">ERROR: integer has no default operator class for "gist"</span></code></pre></div>
+      <h3>Operator classes</h3>
+      <p>An <strong>operator class</strong> is the adapter telling an index type how to handle a data type and which operators it supports. B-tree ships with <code>int8_ops</code> (so it does <code>=</code>); GiST ships with <code>range_ops</code> (so it does <code>&amp;&amp;</code>) — but <em>not</em> equality on a <code>bigint</code>.</p>
+      <h3>What the extension adds</h3>
+      <p><code>CREATE EXTENSION btree_gist</code> installs GiST operator classes for scalar types — <code>gist_int8_ops</code>, <code>gist_timestamptz_ops</code>, <code>gist_uuid_ops</code>, … — that replicate B-tree’s <code>=</code>/<code>&lt;</code>/<code>&gt;</code> <em>inside</em> a GiST index. Now one GiST index can hold <strong>both</strong> <code>car_id WITH =</code> and <code>range WITH &amp;&amp;</code> — exactly what the constraint needs.</p>
+      <div class="call"><div class="t">Is it risky?</div>No. It’s a built-in module that ships with every standard PostgreSQL (and our PostGIS image). One line, run once inside a versioned Flyway migration. It only <em>adds</em> capability.</div>
+      <div class="call key"><div class="t">One-line answer</div>The overlap test forces the index to be <strong>GiST</strong>; GiST can’t do scalar <strong>equality</strong> on its own; <code>btree_gist</code> adds that so <code>car_id =</code> and <code>range &amp;&amp;</code> can share the <strong>one</strong> GiST index an exclusion constraint requires.</div>
+    </section>
+
+    <section id="s9">
+      <h2><span class="num">09</span> Two concurrent bookings, step by step</h2>
+      <p>Both transactions try to book <strong>car 7</strong> for <strong>overlapping</strong> dates at the same time.</p>
+      <div class="trace" role="table" aria-label="Concurrent transaction trace">
+        <div class="row"><div class="t colh"></div><div class="colh">Transaction A</div><div class="colh">Transaction B</div></div>
+        <div class="row"><div class="t">t0</div><div class="cell">BEGIN</div><div class="cell">BEGIN</div></div>
+        <div class="row"><div class="t">t1</div><div class="cell"><span class="a">INSERT</span> (car7, Jun21–24)<br><span class="dim-t">check index → no committed conflict → tentative insert</span></div><div class="cell"></div></div>
+        <div class="row"><div class="t">t2</div><div class="cell"></div><div class="cell"><span class="b">INSERT</span> (car7, Jun22–25)<br><span class="dim-t">check index → finds A’s tentative row, but A not committed</span><br><span class="wait">→ WAIT for A</span></div></div>
+        <div class="row"><div class="t">t3</div><div class="cell"><span class="ok-t">COMMIT ✓</span> — A is permanent</div><div class="cell"><span class="wait">…still waiting…</span></div></div>
+        <div class="row"><div class="t">t4</div><div class="cell"></div><div class="cell">wakes, <strong>re-checks</strong> → A committed → real conflict<br><span class="bad-t">ERROR 23P01 → rolled back ✗</span></div></div>
+      </div>
+      <p><strong>Result: A is booked, B is cleanly rejected.</strong> B could not “miss” A’s row, because the check happens <em>as part of</em> the insert — not as an earlier separate <code>SELECT</code> — and B was forced to wait for A’s outcome instead of guessing. Had A rolled back at t3, B would have woken, found no conflict, and succeeded. <strong>Exactly one always wins.</strong></p>
+      <p>Scale to 50 transactions: they line up on the index, the first to commit wins, the other 49 re-check and get <code>23P01</code>. In the app, <code>23P01</code> becomes Spring’s <code>DataIntegrityViolationException</code> → a friendly <strong>409 “just got booked.”</strong></p>
+    </section>
+
+    <section id="s10">
+      <h2><span class="num">10</span> The application layers on top</h2>
+      <p>The constraint <em>guarantees correctness</em>. These make the experience good and efficient — they don’t replace it.</p>
+      <div class="tbl"><table>
+        <tr><th>Layer</th><th>Purpose</th><th>Task</th></tr>
+        <tr><td><strong>Pending hold + expiry</strong></td><td><code>PENDING</code> booking with <code>expires_at</code> reserves the car during checkout; a job frees stale holds</td><td>#15, #30</td></tr>
+        <tr><td><strong>Pessimistic lock</strong></td><td><code>SELECT … FOR UPDATE</code> — serialize a hot car so requests queue, not error</td><td>#16</td></tr>
+        <tr><td><strong>Optimistic lock</strong></td><td><code>@Version</code> — no lock; detect a concurrent change and retry</td><td>#17</td></tr>
+        <tr><td><strong>Idempotency key</strong></td><td>a retried/double-clicked request returns the <em>same</em> booking</td><td>#18</td></tr>
+      </table></div>
+      <div class="call"><div class="t">Mental model</div>The <strong>constraint is the seatbelt</strong> — always on, guarantees safety. The locks and holds are <strong>good driving</strong> — avoid collisions in the first place and handle them gracefully.</div>
+    </section>
+
+    <section id="s11">
+      <h2><span class="num">11</span> Alternatives compared</h2>
+      <div class="tbl"><table>
+        <tr><th>Approach</th><th>Race-safe?</th><th>Extension?</th><th>Granularity</th><th>Rows/booking</th><th>Verdict</th></tr>
+        <tr><td>app SELECT+INSERT</td><td class="bad-t" style="color:var(--bad)">no (TOCTOU)</td><td>no</td><td>any</td><td>1</td><td>toy only</td></tr>
+        <tr><td>app lock (synchronized)</td><td style="color:var(--warn)">one server only</td><td>no</td><td>any</td><td>1</td><td>breaks with 2+ servers</td></tr>
+        <tr><td>row per day + UNIQUE</td><td style="color:var(--ok)">yes</td><td><strong>no</strong></td><td>whole day</td><td>N</td><td>great simple choice</td></tr>
+        <tr><td><strong>range + EXCLUDE</strong></td><td style="color:var(--ok)">yes</td><td>yes</td><td>any</td><td>1</td><td>production-grade</td></tr>
+        <tr><td>distributed lock (Redis)</td><td style="color:var(--ok)">yes</td><td>n/a</td><td>any</td><td>1</td><td>adds infra; still want DB rule</td></tr>
+      </table></div>
+      <div class="call key"><div class="t">Guiding principle</div>Push the hard correctness guarantee down to the lowest, most reliable layer — the database — and treat application code as optimization and UX, not as the thing correctness depends on.</div>
+    </section>
+
+    <section id="s12">
+      <h2><span class="num">12</span> Glossary</h2>
+      <div class="tbl"><table>
+        <tr><th>Term</th><th>Meaning</th></tr>
+        <tr><td><strong>TOCTOU race</strong></td><td>the gap between checking “is it free?” and acting “insert it,” where a competitor slips in</td></tr>
+        <tr><td><strong>Transaction</strong></td><td>an all-or-nothing group of statements; invisible to others until commit</td></tr>
+        <tr><td><strong>Index</strong></td><td>a side structure for fast lookups <em>and</em> a precise place to lock</td></tr>
+        <tr><td><strong>B-tree / GiST</strong></td><td>sorted-equality index / overlap-and-containment index</td></tr>
+        <tr><td><code>tstzrange</code> / <code>&amp;&amp;</code></td><td>a start–end value (<code>[)</code> = start in, end out) / the overlap operator</td></tr>
+        <tr><td><strong>operator class</strong></td><td>adapter telling an index how to handle a type and which operators it supports</td></tr>
+        <tr><td><strong>EXCLUDE</strong></td><td>generalized UNIQUE: forbids two rows related by given operators</td></tr>
+        <tr><td><code>btree_gist</code></td><td>extension adding scalar operator classes to GiST so <code>=</code> and <code>&amp;&amp;</code> share one index</td></tr>
+        <tr><td><code>23P01</code></td><td>Postgres <code>exclusion_violation</code>; becomes <code>DataIntegrityViolationException</code> in Spring</td></tr>
+        <tr><td><strong>pessimistic / optimistic lock</strong></td><td>wait-on-a-lock vs detect-and-retry strategies for concurrent updates</td></tr>
+        <tr><td><strong>idempotency key</strong></td><td>client-supplied id so a repeated request yields the same result, not a duplicate</td></tr>
+      </table></div>
+    </section>
+  </main>
+</div>
+
+<footer>car-rental · booking engine internals · the database is the seatbelt — exactly one booking wins.</footer>

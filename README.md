@@ -80,4 +80,15 @@ can finish in a sitting; you can stop after any task with a working system.
 
 **🎉 Phase 1 complete — domain, auth, RBAC, multi-tenancy, agency/car CRUD, and bulk seed data.**
 
+### Phase 2 — Booking engine ⭐ (crown jewel)
+- [x] **#13** Booking entity + exclusion constraint (`V3`: `btree_gist`, `booking` table, `EXCLUDE` no-overlap-per-car; proven on real table). See `docs/booking-engine-internals.md`.
+- [x] **#14** Availability check endpoint — `GET /api/cars/{id}/availability?from&to` (customer-facing; checks car status + active-booking overlap)
+- [x] **#15** Create booking with pending hold — `POST /api/bookings` (PENDING + `expires_at`=now+10m, `@Transactional`, catches `23P01`→409); GET own bookings
+- [x] **#16** Pessimistic locking variant — `POST /api/bookings/pessimistic`; `@Lock(PESSIMISTIC_WRITE)` on car (`SELECT … FOR NO KEY UPDATE`) serializes per-car, then a race-free overlap check
+- [x] **#17** Optimistic locking variant — `V4` adds `car.version`; `POST /api/bookings/optimistic` force-increments it (`@Version`/`OPTIMISTIC_FORCE_INCREMENT`) and retries on conflict (TransactionTemplate, 3 attempts)
+- [x] **#18** Idempotency-Key handling — `Idempotency-Key` header on `POST /api/bookings`; `V5` partial unique index on `(user_id, idempotency_key)`; retries/double-clicks return the same booking
+- [x] **#19** Concurrency test (50 parallel → 1 wins) — `BookingConcurrencyTest` proves exactly-one across all 3 strategies; surfaced & fixed deadlock + pool-exhaustion handling
+
+**🎉 Phase 2 complete — the booking engine is concurrency-safe and proven.**
+
 _Full 47-task checklist lives in the build plan; later tasks are tracked as we reach each phase._
