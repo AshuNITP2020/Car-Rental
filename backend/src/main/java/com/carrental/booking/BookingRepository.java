@@ -20,5 +20,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     /** Owner-scoped read: a booking only if it belongs to this user. */
     Optional<Booking> findByIdAndUser_Id(Long id, Long userId);
 
+    /** Idempotency lookup: the booking previously created with this key, if any. */
+    Optional<Booking> findByUser_IdAndIdempotencyKey(Long userId, String idempotencyKey);
+
     List<Booking> findByUser_IdOrderByStartTsDesc(Long userId);
 }
