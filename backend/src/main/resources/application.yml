@@ -40,6 +40,12 @@ app:
     secret: ${JWT_SECRET:dev-only-secret-please-change-this-to-a-long-random-value-32b+}
     access-minutes: 15
     refresh-days: 7
+  payments:
+    provider: ${PAYMENTS_PROVIDER:mock}   # 'mock' (local, no keys) or 'razorpay'
+    currency: INR
+    razorpay:
+      key-id: ${RAZORPAY_KEY_ID:}
+      key-secret: ${RAZORPAY_KEY_SECRET:}
 
 # Actuator: expose health (and info) so we can prove the app is up.
 # More endpoints get exposed deliberately later (metrics in P7).
