@@ -48,6 +48,13 @@ app:
       key-id: ${RAZORPAY_KEY_ID:rzp_test_T6ZqmAl09U6Pt8}
       key-secret: ${RAZORPAY_KEY_SECRET:I2paiY4wU1WE7ZO33wAAZMN5}
       webhook-secret: ${RAZORPAY_WEBHOOK_SECRET:8bz_NG2GSY8RkXf}
+  pricing:
+    gst-percent: ${PRICING_GST_PERCENT:18}            # tax on the rental
+    deposit-percent: ${PRICING_DEPOSIT_PERCENT:20}    # refundable security deposit
+    platform-fee-percent: ${PRICING_PLATFORM_FEE_PERCENT:10}  # marketplace commission (payout, #25)
+  cancellation:
+    free-window-hours: ${CANCELLATION_FREE_WINDOW_HOURS:24}   # full rental refund if cancelled this far before start
+    late-refund-percent: ${CANCELLATION_LATE_REFUND_PERCENT:50}  # else refund this % of rental (deposit always 100%)
 #api_key -> rzp_test_T6ZqmAl09U6Pt8
 #secret -> I2paiY4wU1WE7ZO33wAAZMN5
 # Actuator: expose health (and info) so we can prove the app is up.

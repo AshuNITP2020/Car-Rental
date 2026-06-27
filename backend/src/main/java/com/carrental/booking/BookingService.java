@@ -5,7 +5,12 @@ import com.carrental.booking.dto.CreateBookingRequest;
 import com.carrental.car.Car;
 import com.carrental.car.CarRepository;
 import com.carrental.car.CarStatus;
+import com.carrental.payment.PaymentService;
+import com.carrental.pricing.PriceBreakdown;
+import com.carrental.pricing.PricingService;
 import com.carrental.user.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -17,8 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.math.BigDecimal;
-import java.time.Duration;
 import java.time.OffsetDateTime;
 
 @Service
@@ -26,21 +29,28 @@ public class BookingService {
 
     private static final int MAX_OPTIMISTIC_ATTEMPTS = 3;
 
+    private static final Logger log = LoggerFactory.getLogger(BookingService.class);
+
     private final BookingRepository bookings;
     private final CarRepository cars;
     private final UserRepository users;
     private final BookingStateMachine stateMachine;
+    private final PaymentService paymentService;
+    private final PricingService pricing;
     private final TransactionTemplate tx;
 
     @Value("${app.booking.hold-minutes:10}")
     private long holdMinutes;
 
     public BookingService(BookingRepository bookings, CarRepository cars, UserRepository users,
-                          BookingStateMachine stateMachine, PlatformTransactionManager txManager) {
+                          BookingStateMachine stateMachine, PaymentService paymentService,
+                          PricingService pricing, PlatformTransactionManager txManager) {
         this.bookings = bookings;
         this.cars = cars;
         this.users = users;
         this.stateMachine = stateMachine;
+        this.paymentService = paymentService;
+        this.pricing = pricing;
         this.tx = new TransactionTemplate(txManager);
     }
 
@@ -56,7 +66,7 @@ public class BookingService {
         validateWindow(req);
         boolean hasKey = idempotencyKey != null && !idempotencyKey.isBlank();
 
-        if (hasKey) {                                   // fast path: already created?
+        if (hasKey) {
             BookingResponse existing = findByKey(userId, idempotencyKey);
             if (existing != null) {
                 return existing;
@@ -172,14 +182,16 @@ public class BookingService {
         Booking booking = new Booking();
         booking.setCar(car);
         booking.setUser(users.getReferenceById(userId));
-        booking.setAgency(car.getAgency());                 // the car's owning agency
+        booking.setAgency(car.getAgency());
         booking.setStartTs(req.from());
         booking.setEndTs(req.to());
         booking.setStatus(BookingStatus.PENDING);
         booking.setExpiresAt(OffsetDateTime.now().plusMinutes(holdMinutes));
-        booking.setAmount(estimateAmount(car, req.from(), req.to()));
+        PriceBreakdown price = pricing.quote(car.getPricePerDay(), req.from(), req.to());
+        booking.setAmount(pricing.chargeableAmount(price));
+        booking.setDeposit(price.deposit());
         booking.setIdempotencyKey(idempotencyKey);
-        bookings.saveAndFlush(booking);   // flush now so a 23P01/23505 surfaces here
+        bookings.saveAndFlush(booking);
         return booking;
     }
 
@@ -201,10 +213,20 @@ public class BookingService {
         return transitionForAgency(agencyId, bookingId, BookingStatus.ACTIVE);
     }
 
-    /** Agency closes the rental on return: ACTIVE -> COMPLETED. */
+    /** Agency closes the rental on return: ACTIVE -> COMPLETED, then pays out. */
     @Transactional
     public BookingResponse completeForAgency(Long agencyId, Long bookingId) {
-        return transitionForAgency(agencyId, bookingId, BookingStatus.COMPLETED);
+        BookingResponse response = transitionForAgency(agencyId, bookingId, BookingStatus.COMPLETED);
+        // Payout runs in its own transaction (REQUIRES_NEW); a payout-provider
+        // failure must not roll back the completion the rental already earned.
+        // Production would do this async (event/outbox, Phase 4) for resilience.
+        try {
+            paymentService.payoutForBooking(bookingId);
+        } catch (Exception e) {
+            log.warn("Payout failed for booking {} (completion stands; retry later): {}",
+                    bookingId, e.getMessage());
+        }
+        return response;
     }
 
     private BookingResponse transitionForAgency(Long agencyId, Long bookingId, BookingStatus target) {
@@ -224,10 +246,5 @@ public class BookingService {
     @Transactional(readOnly = true)
     public java.util.List<BookingResponse> listForUser(Long userId) {
         return bookings.findByUser_IdOrderByStartTsDesc(userId).stream().map(BookingResponse::from).toList();
-    }
-
-    private BigDecimal estimateAmount(Car car, OffsetDateTime from, OffsetDateTime to) {
-        long days = Math.max(1, (long) Math.ceil(Duration.between(from, to).toMinutes() / 1440.0));
-        return car.getPricePerDay().multiply(BigDecimal.valueOf(days));
     }
 }

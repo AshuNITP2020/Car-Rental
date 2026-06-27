@@ -95,8 +95,10 @@ can finish in a sitting; you can stop after any task with a working system.
 - [x] **#20** Payment order on booking (`V6` payment table; `PaymentGateway` abstraction; `POST /api/bookings/{id}/payment` creates a `CREATED` order, idempotent per booking). Two gateways: **mock** (default, no keys) and **Razorpay** (`app.payments.provider=razorpay` + `RAZORPAY_KEY_ID/SECRET`).
 - [x] **#21** Idempotent payment webhook — public `POST /api/payments/webhook`; signature-verified per gateway; capture → payment `CAPTURED` + booking `CONFIRMED`; idempotent on re-delivery
 - [x] **#22** Booking lifecycle state machine — `BookingStateMachine` enforces legal transitions; webhook confirm routes through it; agency `POST /api/agency/bookings/{id}/{activate,complete}` (CONFIRMED→ACTIVE→COMPLETED); illegal moves → 409
-- [ ] **#23** Pricing service (deposit, GST, fees)
-- [ ] **#24** Refunds and cancellation
-- [ ] **#25** Marketplace payout to agency
+- [x] **#23** Pricing service (deposit, GST, fees) — `PricingService` itemizes rental + GST + deposit + platform fee; `GET /api/cars/{id}/quote`; bookings store amount (rental+GST) + deposit
+- [x] **#24** Refunds and cancellation — `POST /api/bookings/{id}/cancel`; deposit-always + timing-based rental refund via gateway `refund()` (mock + Razorpay); webhook now stores captured payment id (`V7`); refund recorded as a REFUND payment row
+- [x] **#25** Marketplace payout to agency — on completion, split the **rental** (excl. GST & deposit): platform keeps `platform-fee-percent`, agency receives `rental − fee` via gateway `payout()` (mock + Razorpay **Route** `transfers.create`); recorded as a `PAYOUT` row, idempotent; runs in `REQUIRES_NEW` so a payout failure never rolls back completion
+
+**🎉 Phase 3 complete — pricing, payments, webhooks, lifecycle, refunds, and marketplace payouts (mock + Razorpay).**
 
 _Full 47-task checklist lives in the build plan; later tasks are tracked as we reach each phase._

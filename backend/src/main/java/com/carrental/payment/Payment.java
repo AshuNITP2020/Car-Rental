@@ -49,10 +49,13 @@ public class Payment {
     private PaymentStatus status = PaymentStatus.CREATED;
 
     @Column(nullable = false, length = 20)
-    private String provider;          // e.g. "MOCK", "RAZORPAY"
+    private String provider;
 
     @Column(name = "provider_ref", length = 120)
-    private String providerRef;       // provider's order/payment id
+    private String providerRef;
+
+    @Column(name = "captured_ref", length = 120)
+    private String capturedRef;
 
     @Column(name = "idempotency_key", length = 80)
     private String idempotencyKey;

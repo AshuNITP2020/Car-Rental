@@ -36,10 +36,10 @@ public class MockPaymentGateway implements PaymentGateway {
 
     /**
      * Mock "signature" is just a shared secret in the X-Webhook-Signature header.
-     * Body: {"event":"captured","orderId":"order_mock_..."}.
+     * Body: {"event":"captured","orderId":"order_mock_...","paymentId":"pay_mock_..."}.
      */
     @Override
-    public String verifyAndExtractCapturedOrderId(String payload, String signature) {
+    public CaptureEvent verifyAndExtractCapture(String payload, String signature) {
         if (signature == null || !signature.equals(webhookSecret)) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid webhook signature");
         }
@@ -48,6 +48,21 @@ public class MockPaymentGateway implements PaymentGateway {
             return null;   // not a capture event — ignore
         }
         String orderId = body.optString("orderId", null);
-        return (orderId == null || orderId.isBlank()) ? null : orderId;
+        if (orderId == null || orderId.isBlank()) {
+            return null;
+        }
+        String paymentId = body.optString("paymentId", "pay_mock_" + UUID.randomUUID().toString().replace("-", ""));
+        return new CaptureEvent(orderId, paymentId);
+    }
+
+    @Override
+    public RefundResult refund(String paymentRef, BigDecimal amount, String currency) {
+        return new RefundResult(name(), "rfnd_mock_" + UUID.randomUUID().toString().replace("-", ""), amount);
+    }
+
+    @Override
+    public PayoutResult payout(String linkedAccount, BigDecimal amount, String currency) {
+        // Mock ignores the linked account — just fabricates a transfer id.
+        return new PayoutResult(name(), "trf_mock_" + UUID.randomUUID().toString().replace("-", ""), amount);
     }
 }
