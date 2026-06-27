@@ -15,6 +15,13 @@ public interface PaymentGateway {
     /** Creates a payment order at the provider and returns its identifiers. */
     GatewayOrder createOrder(String receipt, BigDecimal amount, String currency);
 
+    /**
+     * Verifies a webhook's authenticity (signature/secret) and, if it's a
+     * successful-payment event, returns the provider order id it captured.
+     * Returns null for events we don't act on; throws 401 if verification fails.
+     */
+    String verifyAndExtractCapturedOrderId(String payload, String signature);
+
     record GatewayOrder(String provider, String orderId, BigDecimal amount, String currency) {
     }
 }

@@ -43,9 +43,11 @@ app:
   payments:
     provider: ${PAYMENTS_PROVIDER:mock}   # 'mock' (local, no keys) or 'razorpay'
     currency: INR
+    webhook-secret: ${PAYMENTS_WEBHOOK_SECRET:dev-webhook-secret}   # mock webhook shared secret
     razorpay:
       key-id: ${RAZORPAY_KEY_ID:}
       key-secret: ${RAZORPAY_KEY_SECRET:}
+      webhook-secret: ${RAZORPAY_WEBHOOK_SECRET:}
 
 # Actuator: expose health (and info) so we can prove the app is up.
 # More endpoints get exposed deliberately later (metrics in P7).

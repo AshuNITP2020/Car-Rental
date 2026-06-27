@@ -3,6 +3,7 @@ package com.carrental.payment.gateway;
 import com.razorpay.Order;
 import com.razorpay.RazorpayClient;
 import com.razorpay.RazorpayException;
+import com.razorpay.Utils;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -24,10 +25,14 @@ public class RazorpayGateway implements PaymentGateway {
 
     private final RazorpayClient client;
 
+    private final String webhookSecret;
+
     public RazorpayGateway(@Value("${app.payments.razorpay.key-id}") String keyId,
-                           @Value("${app.payments.razorpay.key-secret}") String keySecret)
+                           @Value("${app.payments.razorpay.key-secret}") String keySecret,
+                           @Value("${app.payments.razorpay.webhook-secret:}") String webhookSecret)
             throws RazorpayException {
         this.client = new RazorpayClient(keyId, keySecret);
+        this.webhookSecret = webhookSecret;
     }
 
     @Override
@@ -50,5 +55,27 @@ public class RazorpayGateway implements PaymentGateway {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
                     "Payment provider error: " + e.getMessage());
         }
+    }
+
+    /**
+     * Verifies the X-Razorpay-Signature HMAC, then extracts the captured order
+     * id from a payment.captured / order.paid event.
+     */
+    @Override
+    public String verifyAndExtractCapturedOrderId(String payload, String signature) {
+        try {
+            if (signature == null || !Utils.verifyWebhookSignature(payload, signature, webhookSecret)) {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid webhook signature");
+            }
+        } catch (RazorpayException e) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Webhook signature check failed");
+        }
+        JSONObject body = new JSONObject(payload);
+        String event = body.optString("event");
+        if (!"payment.captured".equals(event) && !"order.paid".equals(event)) {
+            return null;
+        }
+        return body.getJSONObject("payload").getJSONObject("payment")
+                .getJSONObject("entity").optString("order_id", null);
     }
 }

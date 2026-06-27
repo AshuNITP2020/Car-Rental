@@ -65,6 +65,32 @@ public class PaymentService {
         return PaymentOrderResponse.from(payment, currency);
     }
 
+    /**
+     * Processes a provider webhook. Verifies it, then on a successful capture
+     * marks the payment CAPTURED and confirms the booking. Idempotent: a
+     * re-delivered webhook for an already-captured payment is a no-op, so the
+     * provider can safely retry.
+     */
+    @Transactional
+    public void handleCaptureWebhook(String payload, String signature) {
+        String orderId = gateway.verifyAndExtractCapturedOrderId(payload, signature);
+        if (orderId == null) {
+            return;
+        }
+        Payment payment = payments.findByProviderRef(orderId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Unknown payment order"));
+
+        if (payment.getStatus() == PaymentStatus.CAPTURED) {
+            return;
+        }
+        payment.setStatus(PaymentStatus.CAPTURED);
+
+        Booking booking = payment.getBooking();
+        if (booking.getStatus() == BookingStatus.PENDING) {
+            booking.setStatus(BookingStatus.CONFIRMED);
+        }
+    }
+
     /** Rental + deposit (deposit/GST/fees get fleshed out by the pricing service, #23). */
     private BigDecimal amountToCharge(Booking booking) {
         BigDecimal amount = booking.getAmount() != null ? booking.getAmount() : BigDecimal.ZERO;
