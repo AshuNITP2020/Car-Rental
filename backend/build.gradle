@@ -29,6 +29,10 @@ dependencies {
 	// Realistic fake data for the dev seed script (Task #12).
 	implementation 'net.datafaker:datafaker:2.4.2'
 
+	// Razorpay payment provider (Task #20). Used only when
+	// app.payments.provider=razorpay; the default mock gateway needs none of this.
+	implementation 'com.razorpay:razorpay-java:1.4.8'
+
 	//Authentication/Authorization.
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'

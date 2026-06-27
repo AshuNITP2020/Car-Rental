@@ -91,4 +91,12 @@ can finish in a sitting; you can stop after any task with a working system.
 
 **🎉 Phase 2 complete — the booking engine is concurrency-safe and proven.**
 
+### Phase 3 — Payments & lifecycle
+- [x] **#20** Payment order on booking (`V6` payment table; `PaymentGateway` abstraction; `POST /api/bookings/{id}/payment` creates a `CREATED` order, idempotent per booking). Two gateways: **mock** (default, no keys) and **Razorpay** (`app.payments.provider=razorpay` + `RAZORPAY_KEY_ID/SECRET`).
+- [x] **#21** Idempotent payment webhook — public `POST /api/payments/webhook`; signature-verified per gateway; capture → payment `CAPTURED` + booking `CONFIRMED`; idempotent on re-delivery
+- [x] **#22** Booking lifecycle state machine — `BookingStateMachine` enforces legal transitions; webhook confirm routes through it; agency `POST /api/agency/bookings/{id}/{activate,complete}` (CONFIRMED→ACTIVE→COMPLETED); illegal moves → 409
+- [ ] **#23** Pricing service (deposit, GST, fees)
+- [ ] **#24** Refunds and cancellation
+- [ ] **#25** Marketplace payout to agency
+
 _Full 47-task checklist lives in the build plan; later tasks are tracked as we reach each phase._

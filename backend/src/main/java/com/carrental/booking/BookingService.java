@@ -29,16 +29,18 @@ public class BookingService {
     private final BookingRepository bookings;
     private final CarRepository cars;
     private final UserRepository users;
+    private final BookingStateMachine stateMachine;
     private final TransactionTemplate tx;
 
     @Value("${app.booking.hold-minutes:10}")
     private long holdMinutes;
 
     public BookingService(BookingRepository bookings, CarRepository cars, UserRepository users,
-                          PlatformTransactionManager txManager) {
+                          BookingStateMachine stateMachine, PlatformTransactionManager txManager) {
         this.bookings = bookings;
         this.cars = cars;
         this.users = users;
+        this.stateMachine = stateMachine;
         this.tx = new TransactionTemplate(txManager);
     }
 
@@ -191,6 +193,25 @@ public class BookingService {
         if (car.getStatus() != CarStatus.AVAILABLE) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Car is not available for booking");
         }
+    }
+
+    /** Agency starts the rental: CONFIRMED -> ACTIVE. Scoped to the caller's agency. */
+    @Transactional
+    public BookingResponse activateForAgency(Long agencyId, Long bookingId) {
+        return transitionForAgency(agencyId, bookingId, BookingStatus.ACTIVE);
+    }
+
+    /** Agency closes the rental on return: ACTIVE -> COMPLETED. */
+    @Transactional
+    public BookingResponse completeForAgency(Long agencyId, Long bookingId) {
+        return transitionForAgency(agencyId, bookingId, BookingStatus.COMPLETED);
+    }
+
+    private BookingResponse transitionForAgency(Long agencyId, Long bookingId, BookingStatus target) {
+        Booking booking = bookings.findByIdAndAgency_Id(bookingId, agencyId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
+        stateMachine.transition(booking, target);
+        return BookingResponse.from(booking);
     }
 
     @Transactional(readOnly = true)
