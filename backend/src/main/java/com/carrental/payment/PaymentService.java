@@ -2,6 +2,7 @@ package com.carrental.payment;
 
 import com.carrental.booking.Booking;
 import com.carrental.booking.BookingRepository;
+import com.carrental.booking.BookingStateMachine;
 import com.carrental.booking.BookingStatus;
 import com.carrental.payment.dto.PaymentOrderResponse;
 import com.carrental.payment.gateway.PaymentGateway;
@@ -19,14 +20,17 @@ public class PaymentService {
     private final BookingRepository bookings;
     private final PaymentRepository payments;
     private final PaymentGateway gateway;
+    private final BookingStateMachine stateMachine;
 
     @Value("${app.payments.currency:INR}")
     private String currency;
 
-    public PaymentService(BookingRepository bookings, PaymentRepository payments, PaymentGateway gateway) {
+    public PaymentService(BookingRepository bookings, PaymentRepository payments,
+                          PaymentGateway gateway, BookingStateMachine stateMachine) {
         this.bookings = bookings;
         this.payments = payments;
         this.gateway = gateway;
+        this.stateMachine = stateMachine;
     }
 
     /**
@@ -85,9 +89,12 @@ public class PaymentService {
         }
         payment.setStatus(PaymentStatus.CAPTURED);
 
+        // Confirm via the state machine (single authority on transitions);
+        // guarded on PENDING so a capture after hold-expiry doesn't force an
+        // illegal move (that's a refund case, #24).
         Booking booking = payment.getBooking();
         if (booking.getStatus() == BookingStatus.PENDING) {
-            booking.setStatus(BookingStatus.CONFIRMED);
+            stateMachine.transition(booking, BookingStatus.CONFIRMED);
         }
     }
 
