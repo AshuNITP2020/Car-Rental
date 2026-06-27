@@ -59,10 +59,10 @@ public class RazorpayGateway implements PaymentGateway {
 
     /**
      * Verifies the X-Razorpay-Signature HMAC, then extracts the captured order
-     * id from a payment.captured / order.paid event.
+     * + payment ids from a payment.captured / order.paid event.
      */
     @Override
-    public String verifyAndExtractCapturedOrderId(String payload, String signature) {
+    public CaptureEvent verifyAndExtractCapture(String payload, String signature) {
         try {
             if (signature == null || !Utils.verifyWebhookSignature(payload, signature, webhookSecret)) {
                 throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid webhook signature");
@@ -75,7 +75,45 @@ public class RazorpayGateway implements PaymentGateway {
         if (!"payment.captured".equals(event) && !"order.paid".equals(event)) {
             return null;
         }
-        return body.getJSONObject("payload").getJSONObject("payment")
-                .getJSONObject("entity").optString("order_id", null);
+        JSONObject entity = body.getJSONObject("payload").getJSONObject("payment").getJSONObject("entity");
+        return new CaptureEvent(entity.optString("order_id", null), entity.optString("id", null));
+    }
+
+    @Override
+    public RefundResult refund(String paymentRef, BigDecimal amount, String currency) {
+        long minorUnits = amount.movePointRight(2).setScale(0, RoundingMode.HALF_UP).longValueExact();
+        JSONObject request = new JSONObject();
+        request.put("amount", minorUnits);
+        try {
+            com.razorpay.Refund refund = client.payments.refund(paymentRef, request);
+            return new RefundResult(name(), refund.get("id"), amount);
+        } catch (RazorpayException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
+                    "Refund failed at provider: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Razorpay Route transfer to an agency's linked account ("acc_..."). The
+     * agency must be onboarded as a linked account first; without one this 502s.
+     */
+    @Override
+    public PayoutResult payout(String linkedAccount, BigDecimal amount, String currency) {
+        if (linkedAccount == null || linkedAccount.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
+                    "Agency has no Razorpay linked account configured for payouts");
+        }
+        long minorUnits = amount.movePointRight(2).setScale(0, RoundingMode.HALF_UP).longValueExact();
+        JSONObject request = new JSONObject();
+        request.put("account", linkedAccount);
+        request.put("amount", minorUnits);
+        request.put("currency", currency);
+        try {
+            com.razorpay.Transfer transfer = client.transfers.create(request);
+            return new PayoutResult(name(), transfer.get("id"), amount);
+        } catch (RazorpayException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
+                    "Payout failed at provider: " + e.getMessage());
+        }
     }
 }

@@ -2,6 +2,7 @@ package com.carrental.booking;
 
 import com.carrental.auth.AuthPrincipal;
 import com.carrental.booking.dto.BookingResponse;
+import com.carrental.booking.dto.CancelResponse;
 import com.carrental.booking.dto.CreateBookingRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -26,9 +27,11 @@ import java.util.List;
 public class BookingController {
 
     private final BookingService bookingService;
+    private final CancellationService cancellationService;
 
-    public BookingController(BookingService bookingService) {
+    public BookingController(BookingService bookingService, CancellationService cancellationService) {
         this.bookingService = bookingService;
+        this.cancellationService = cancellationService;
     }
 
     @PostMapping
@@ -52,6 +55,12 @@ public class BookingController {
                                                             @Valid @RequestBody CreateBookingRequest req) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(bookingService.createOptimistic(principal.userId(), req));
+    }
+
+    /** Customer cancels their own booking; refunds per policy if already paid. */
+    @PostMapping("/{id}/cancel")
+    public CancelResponse cancel(@AuthenticationPrincipal AuthPrincipal principal, @PathVariable Long id) {
+        return cancellationService.cancelForUser(principal.userId(), id);
     }
 
     @GetMapping

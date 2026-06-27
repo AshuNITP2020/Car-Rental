@@ -11,4 +11,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     /** Look up by the provider's order/payment id (used by the webhook, #21). */
     Optional<Payment> findByProviderRef(String providerRef);
+
+    /** Has a payout (of any status) already been made for this booking? (idempotency, #25) */
+    boolean existsByBooking_IdAndType(Long bookingId, PaymentType type);
 }
