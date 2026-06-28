@@ -12,7 +12,7 @@ import java.time.OffsetDateTime;
 public record CarSearchCriteria(
         String city,
         String category,
-        String q,
+        String keyword,
         BigDecimal minPrice,
         BigDecimal maxPrice,
         OffsetDateTime from,

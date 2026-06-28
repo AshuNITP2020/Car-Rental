@@ -93,9 +93,9 @@ class CarSearchTest {
         return c.getId();
     }
 
-    private CarSearchCriteria criteria(String category, String q, BigDecimal min, BigDecimal max,
+    private CarSearchCriteria criteria(String category, String keyword, BigDecimal min, BigDecimal max,
                                        OffsetDateTime from, OffsetDateTime to, String sort, int page, int size) {
-        return new CarSearchCriteria(city, category, q, min, max, from, to, sort, page, size);
+        return new CarSearchCriteria(city, category, keyword, min, max, from, to, sort, page, size);
     }
 
     private List<Long> ids(PageResponse<CarSearchResult> p) {

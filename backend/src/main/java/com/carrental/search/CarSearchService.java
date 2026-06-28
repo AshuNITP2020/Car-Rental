@@ -32,13 +32,36 @@ public class CarSearchService {
         CarStatus available = CarStatus.AVAILABLE;   // customer search only returns bookable cars
         String city = lower(c.city());
         String category = lower(c.category());
-        String q = c.q() == null ? null : "%" + c.q().toLowerCase(Locale.ROOT) + "%";
+        String keywordPattern = c.keyword() == null ? null : "%" + c.keyword().toLowerCase(Locale.ROOT) + "%";
 
         Page<Car> page = c.from() == null
-                ? repo.search(available, city, category, q, c.minPrice(), c.maxPrice(), pageable)
-                : repo.searchAvailableBetween(available, city, category, q, c.minPrice(), c.maxPrice(),
+                ? repo.search(available, city, category, keywordPattern, c.minPrice(), c.maxPrice(), pageable)
+                : repo.searchAvailableBetween(available, city, category, keywordPattern, c.minPrice(), c.maxPrice(),
                         c.from(), c.to(), BookingStatus.BLOCKING, pageable);
         return PageResponse.from(page.map(CarSearchResult::from));
+    }
+
+    /**
+     * "Cars near me": AVAILABLE cars within {@code radiusKm} of the given
+     * lat/lng, ordered nearest-first, with the same optional category/text/price
+     * and availability-window filters as {@link #search}. The native query owns
+     * the distance ordering (PostGIS {@code <->}), so the {@link Pageable} carries
+     * no sort. (Task #33)
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<NearbyCarResult> searchNearby(NearbyCarCriteria c) {
+        Pageable pageable = PageRequest.of(c.page(), c.size());
+        String category = lower(c.category());
+        String keywordPattern = c.keyword() == null ? null : "%" + c.keyword().toLowerCase(Locale.ROOT) + "%";
+        // Always non-empty so the SQL "status in (:blocking)" stays valid; whether
+        // availability is actually checked is decided by the from/to guard, not this.
+        var blocking = BookingStatus.BLOCKING.stream().map(Enum::name).toList();
+
+        Page<NearbyCarRow> page = repo.searchNearby(
+                c.lat(), c.lng(), c.radiusKm() * 1000.0,
+                category, keywordPattern, c.minPrice(), c.maxPrice(),
+                c.from(), c.to(), blocking, pageable);
+        return PageResponse.from(page.map(NearbyCarResult::from));
     }
 
     private static String lower(String s) {
