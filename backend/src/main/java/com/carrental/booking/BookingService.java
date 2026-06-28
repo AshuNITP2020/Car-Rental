@@ -5,6 +5,8 @@ import com.carrental.booking.dto.CreateBookingRequest;
 import com.carrental.car.Car;
 import com.carrental.car.CarRepository;
 import com.carrental.car.CarStatus;
+import com.carrental.events.DomainEvent;
+import com.carrental.events.DomainEventPublisher;
 import com.carrental.payment.PaymentService;
 import com.carrental.pricing.PriceBreakdown;
 import com.carrental.pricing.PricingService;
@@ -37,6 +39,7 @@ public class BookingService {
     private final BookingStateMachine stateMachine;
     private final PaymentService paymentService;
     private final PricingService pricing;
+    private final DomainEventPublisher events;
     private final TransactionTemplate tx;
 
     @Value("${app.booking.hold-minutes:10}")
@@ -44,13 +47,15 @@ public class BookingService {
 
     public BookingService(BookingRepository bookings, CarRepository cars, UserRepository users,
                           BookingStateMachine stateMachine, PaymentService paymentService,
-                          PricingService pricing, PlatformTransactionManager txManager) {
+                          PricingService pricing, DomainEventPublisher events,
+                          PlatformTransactionManager txManager) {
         this.bookings = bookings;
         this.cars = cars;
         this.users = users;
         this.stateMachine = stateMachine;
         this.paymentService = paymentService;
         this.pricing = pricing;
+        this.events = events;
         this.tx = new TransactionTemplate(txManager);
     }
 
@@ -210,13 +215,14 @@ public class BookingService {
     /** Agency starts the rental: CONFIRMED -> ACTIVE. Scoped to the caller's agency. */
     @Transactional
     public BookingResponse activateForAgency(Long agencyId, Long bookingId) {
-        return transitionForAgency(agencyId, bookingId, BookingStatus.ACTIVE);
+        return transitionForAgency(agencyId, bookingId, BookingStatus.ACTIVE, null);
     }
 
     /** Agency closes the rental on return: ACTIVE -> COMPLETED, then pays out. */
     @Transactional
     public BookingResponse completeForAgency(Long agencyId, Long bookingId) {
-        BookingResponse response = transitionForAgency(agencyId, bookingId, BookingStatus.COMPLETED);
+        BookingResponse response = transitionForAgency(
+                agencyId, bookingId, BookingStatus.COMPLETED, DomainEvent.BOOKING_COMPLETED);
         // Payout runs in its own transaction (REQUIRES_NEW); a payout-provider
         // failure must not roll back the completion the rental already earned.
         // Production would do this async (event/outbox, Phase 4) for resilience.
@@ -229,10 +235,14 @@ public class BookingService {
         return response;
     }
 
-    private BookingResponse transitionForAgency(Long agencyId, Long bookingId, BookingStatus target) {
+    private BookingResponse transitionForAgency(Long agencyId, Long bookingId,
+                                                BookingStatus target, String eventType) {
         Booking booking = bookings.findByIdAndAgency_Id(bookingId, agencyId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
         stateMachine.transition(booking, target);
+        if (eventType != null) {
+            events.publish(eventType, booking);   // forwarded to Kafka after commit
+        }
         return BookingResponse.from(booking);
     }
 
@@ -246,5 +256,72 @@ public class BookingService {
     @Transactional(readOnly = true)
     public java.util.List<BookingResponse> listForUser(Long userId) {
         return bookings.findByUser_IdOrderByStartTsDesc(userId).stream().map(BookingResponse::from).toList();
+    }
+
+    // ── scheduled maintenance (#30, #31) ─────────────────────────────────────
+
+    /**
+     * #30: expire PENDING holds past their expires_at → EXPIRED, which drops
+     * them out of the partial exclusion constraint and frees the car's slot.
+     */
+    @Transactional
+    public int expireStaleHolds() {
+        var stale = bookings.findByStatusAndExpiresAtBefore(BookingStatus.PENDING, OffsetDateTime.now());
+        stale.forEach(b -> stateMachine.transition(b, BookingStatus.EXPIRED));
+        if (!stale.isEmpty()) {
+            log.info("Expired {} stale booking hold(s)", stale.size());
+        }
+        return stale.size();
+    }
+
+    /**
+     * #31: auto-complete ACTIVE bookings whose end has passed → COMPLETED, then
+     * pay out. The transition commits first (own tx), then payouts run per
+     * booking (REQUIRES_NEW), so one failed payout doesn't undo any completion.
+     */
+    public int autoCompleteOverdue() {
+        java.util.List<Long> completedIds = tx.execute(s -> {
+            var overdue = bookings.findByStatusAndEndTsBefore(BookingStatus.ACTIVE, OffsetDateTime.now());
+            overdue.forEach(b -> {
+                stateMachine.transition(b, BookingStatus.COMPLETED);
+                events.publish(DomainEvent.BOOKING_COMPLETED, b);
+            });
+            return overdue.stream().map(Booking::getId).toList();
+        });
+        for (Long id : completedIds) {
+            try {
+                paymentService.payoutForBooking(id);
+            } catch (Exception e) {
+                log.warn("Auto-complete payout failed for booking {}: {}", id, e.getMessage());
+            }
+        }
+        if (!completedIds.isEmpty()) {
+            log.info("Auto-completed {} overdue booking(s)", completedIds.size());
+        }
+        return completedIds.size();
+    }
+
+    /**
+     * #31: send pickup reminders for CONFIRMED bookings starting within the
+     * window. Publishes BOOKING_REMINDER; the notification consumer dedupes, so
+     * a user gets at most one reminder even if the job runs repeatedly.
+     */
+    @Transactional
+    public int remindUpcomingPickups(long withinHours) {
+        OffsetDateTime now = OffsetDateTime.now();
+        var upcoming = bookings.findByStatusAndStartTsBetween(
+                BookingStatus.CONFIRMED, now, now.plusHours(withinHours));
+        upcoming.forEach(b -> events.publish(DomainEvent.BOOKING_REMINDER, b));
+        return upcoming.size();
+    }
+
+    /** #31: snapshot counts for the nightly report. */
+    @Transactional(readOnly = true)
+    public String statusReport() {
+        StringBuilder sb = new StringBuilder("Booking report:");
+        for (BookingStatus st : BookingStatus.values()) {
+            sb.append(' ').append(st).append('=').append(bookings.countByStatus(st));
+        }
+        return sb.toString();
     }
 }
