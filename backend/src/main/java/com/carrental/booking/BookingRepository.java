@@ -27,4 +27,17 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     Optional<Booking> findByUser_IdAndIdempotencyKey(Long userId, String idempotencyKey);
 
     List<Booking> findByUser_IdOrderByStartTsDesc(Long userId);
+
+    // --- scheduled-job finders (#30, #31) ---
+
+    /** PENDING holds whose expiry has passed — to be EXPIRED and freed (#30). */
+    List<Booking> findByStatusAndExpiresAtBefore(BookingStatus status, OffsetDateTime cutoff);
+
+    /** Bookings in a status whose end has passed — overdue ACTIVE -> auto-complete (#31). */
+    List<Booking> findByStatusAndEndTsBefore(BookingStatus status, OffsetDateTime cutoff);
+
+    /** Bookings in a status starting within a window — for pickup reminders (#31). */
+    List<Booking> findByStatusAndStartTsBetween(BookingStatus status, OffsetDateTime from, OffsetDateTime to);
+
+    long countByStatus(BookingStatus status);
 }

@@ -4,6 +4,8 @@ import com.carrental.booking.Booking;
 import com.carrental.booking.BookingRepository;
 import com.carrental.booking.BookingStateMachine;
 import com.carrental.booking.BookingStatus;
+import com.carrental.events.DomainEvent;
+import com.carrental.events.DomainEventPublisher;
 import com.carrental.payment.dto.PaymentOrderResponse;
 import com.carrental.payment.gateway.PaymentGateway;
 import com.carrental.pricing.PriceBreakdown;
@@ -26,18 +28,20 @@ public class PaymentService {
     private final PaymentGateway gateway;
     private final BookingStateMachine stateMachine;
     private final PricingService pricing;
+    private final DomainEventPublisher events;
 
     @Value("${app.payments.currency:INR}")
     private String currency;
 
     public PaymentService(BookingRepository bookings, PaymentRepository payments,
                           PaymentGateway gateway, BookingStateMachine stateMachine,
-                          PricingService pricing) {
+                          PricingService pricing, DomainEventPublisher events) {
         this.bookings = bookings;
         this.payments = payments;
         this.gateway = gateway;
         this.stateMachine = stateMachine;
         this.pricing = pricing;
+        this.events = events;
     }
 
     /**
@@ -98,8 +102,10 @@ public class PaymentService {
         payment.setCapturedRef(event.paymentId());   // provider payment id, for refunds (#24)
 
         Booking booking = payment.getBooking();
+        events.publish(DomainEvent.PAYMENT_CAPTURED, booking);
         if (booking.getStatus() == BookingStatus.PENDING) {
             stateMachine.transition(booking, BookingStatus.CONFIRMED);
+            events.publish(DomainEvent.BOOKING_CONFIRMED, booking);
         }
     }
 

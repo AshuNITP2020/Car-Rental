@@ -101,4 +101,14 @@ can finish in a sitting; you can stop after any task with a working system.
 
 **🎉 Phase 3 complete — pricing, payments, webhooks, lifecycle, refunds, and marketplace payouts (mock + Razorpay).**
 
+### Phase 4 — Async & event-driven
+- [x] **#26** Add Kafka (KRaft) + Spring Kafka — `apache/kafka:3.8.0` (KRaft, no ZooKeeper) on `:9092` in docker-compose; `spring-boot-kafka` dep + `spring.kafka.*` config; produce→consume verified through Spring then smoke code removed
+- [x] **#27** Publish domain events — `DomainEvent` (PAYMENT_CAPTURED/BOOKING_CONFIRMED/CANCELLED/COMPLETED) published via `@TransactionalEventListener(AFTER_COMMIT)` → Kafka `car-rental.events` (keyed by bookingId); verified all 4 events land. (Boot 4 = Jackson 3 / `tools.jackson`.)
+- [x] **#28** Notification consumer (email + FCM) — `@KafkaListener` (group `notifications`); `NotificationSender` with **log** (default) and **real SMTP email** (`app.notifications.provider=email`, Spring Mail) impls; persists `notification` rows; idempotent (`V8` unique index). FCM push still a stub.
+- [x] **#29** Analytics/audit consumer — 2nd `@KafkaListener` (group `analytics`) on same topic → append-only `event_audit` (`V9`); proves consumer-group **fan-out** (both groups get every event)
+- [x] **#30** Scheduled job: expire stale holds — `@EnableScheduling` + `BookingScheduler`; sweeps `PENDING` past `expires_at` → `EXPIRED`, freeing the slot
+- [x] **#31** Scheduled jobs: reminders, auto-complete, reports — overdue `ACTIVE` → `COMPLETED` (+payout); pickup reminders via `BOOKING_REMINDER` event; nightly status report
+
+**🎉 Phase 4 complete — event-driven (Kafka publish + fan-out consumers) and time-based (scheduled jobs).**
+
 _Full 47-task checklist lives in the build plan; later tasks are tracked as we reach each phase._

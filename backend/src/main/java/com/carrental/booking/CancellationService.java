@@ -1,6 +1,8 @@
 package com.carrental.booking;
 
 import com.carrental.booking.dto.CancelResponse;
+import com.carrental.events.DomainEvent;
+import com.carrental.events.DomainEventPublisher;
 import com.carrental.payment.PaymentService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -30,6 +32,7 @@ public class CancellationService {
     private final BookingRepository bookings;
     private final BookingStateMachine stateMachine;
     private final PaymentService payments;
+    private final DomainEventPublisher events;
 
     @Value("${app.cancellation.free-window-hours:24}")
     private long freeWindowHours;
@@ -39,10 +42,11 @@ public class CancellationService {
     private String currency;
 
     public CancellationService(BookingRepository bookings, BookingStateMachine stateMachine,
-                               PaymentService payments) {
+                               PaymentService payments, DomainEventPublisher events) {
         this.bookings = bookings;
         this.stateMachine = stateMachine;
         this.payments = payments;
+        this.events = events;
     }
 
     @Transactional
@@ -58,6 +62,7 @@ public class CancellationService {
             refunded = computeRefund(booking);
             payments.refundBookingPayment(booking, refunded);
         }
+        events.publish(DomainEvent.BOOKING_CANCELLED, booking);
         return new CancelResponse(booking.getId(), booking.getStatus().name(), refunded, currency);
     }
 

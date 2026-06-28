@@ -2,6 +2,14 @@ spring:
   application:
     name: car-rental-backend
 
+  # Load the gitignored root .env (KEY=VALUE) as properties, so its env vars
+  # back the ${...} placeholders below. `optional:` = no error if absent.
+  # ../.env when run from backend/ (gradle bootRun); .env if run from the root.
+  config:
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:../.env[.properties]
+
   # Connects to the Postgres container from docker-compose (host port 55432).
   # Values are overridable via env vars so they never have to be hardcoded
   # for other environments. Defaults match docker-compose.yml dev creds.
@@ -9,6 +17,28 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:55432/carrental}
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:postgres}
+
+  # SMTP — only used when app.notifications.provider=email. Point at Mailtrap
+  # (dev inbox) or Gmail; pass creds via env. Empty host = unused (log provider).
+  mail:
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:2525}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${MAIL_AUTH:true}
+      mail.smtp.starttls.enable: ${MAIL_STARTTLS:true}
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      group-id: ${KAFKA_GROUP_ID:car-rental}
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
 
   jpa:
     hibernate:
@@ -41,13 +71,13 @@ app:
     access-minutes: 15
     refresh-days: 7
   payments:
-    provider: ${PAYMENTS_PROVIDER:razorpay}   # 'mock' (local, no keys) or 'razorpay'
+    provider: ${PAYMENTS_PROVIDER:mock}   # 'mock' (local, no keys) or 'razorpay'
     currency: INR
     webhook-secret: ${PAYMENTS_WEBHOOK_SECRET:dev-webhook-secret}   # mock webhook shared secret
-    razorpay:
-      key-id: ${RAZORPAY_KEY_ID:rzp_test_T6ZqmAl09U6Pt8}
-      key-secret: ${RAZORPAY_KEY_SECRET:I2paiY4wU1WE7ZO33wAAZMN5}
-      webhook-secret: ${RAZORPAY_WEBHOOK_SECRET:8bz_NG2GSY8RkXf}
+    razorpay:                              # real values come from .env (gitignored)
+      key-id: ${RAZORPAY_KEY_ID:}
+      key-secret: ${RAZORPAY_KEY_SECRET:}
+      webhook-secret: ${RAZORPAY_WEBHOOK_SECRET:}
   pricing:
     gst-percent: ${PRICING_GST_PERCENT:18}            # tax on the rental
     deposit-percent: ${PRICING_DEPOSIT_PERCENT:20}    # refundable security deposit
@@ -55,8 +85,17 @@ app:
   cancellation:
     free-window-hours: ${CANCELLATION_FREE_WINDOW_HOURS:24}   # full rental refund if cancelled this far before start
     late-refund-percent: ${CANCELLATION_LATE_REFUND_PERCENT:50}  # else refund this % of rental (deposit always 100%)
-#api_key -> rzp_test_T6ZqmAl09U6Pt8
-#secret -> I2paiY4wU1WE7ZO33wAAZMN5
+  notifications:
+    provider: ${NOTIFICATIONS_PROVIDER:log}   # 'log' (default, no setup) or 'email' (SMTP via spring.mail.*)
+    email:
+      from: ${NOTIFICATIONS_EMAIL_FROM:no-reply@car-rental.local}
+  scheduler:
+    hold-expiry-ms: ${SCHED_HOLD_EXPIRY_MS:60000}        # sweep stale holds (#30)
+    auto-complete-ms: ${SCHED_AUTO_COMPLETE_MS:300000}   # auto-complete overdue rentals (#31)
+    reminder-ms: ${SCHED_REMINDER_MS:300000}             # pickup reminders (#31)
+    reminder-window-hours: ${SCHED_REMINDER_WINDOW_HOURS:24}
+    report-cron: ${SCHED_REPORT_CRON:0 0 1 * * *}        # nightly report at 01:00 (#31)
+
 # Actuator: expose health (and info) so we can prove the app is up.
 # More endpoints get exposed deliberately later (metrics in P7).
 management:
