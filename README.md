@@ -111,4 +111,10 @@ can finish in a sitting; you can stop after any task with a working system.
 
 **🎉 Phase 4 complete — event-driven (Kafka publish + fan-out consumers) and time-based (scheduled jobs).**
 
+### Phase 5 — Search, geo & caching
+- [x] **#32** Search endpoint (filters, sort, pagination) — `GET /api/cars/search` (customer-facing, cross-tenant). Optional, AND-combined filters: `city`/`category` (case-insensitive), `q` (free text over make·model), `minPrice`/`maxPrice`, and a `from`/`to` availability window (excludes cars with an overlapping BLOCKING booking); always restricted to AVAILABLE cars. `sort=price|newest[,asc|desc]` (allow-listed, `id` tiebreaker); `page`/`size` (≤100) returning a reusable `PageResponse<T>`. New `com.carrental.search` module (keeps the `car`↔`booking` packages cycle-free); `V10` adds `lower(city)`/`lower(category)` functional indexes for the case-insensitive filters.
+- [ ] **#33** PostGIS geo search
+- [ ] **#34** Redis caching + invalidation
+- [ ] **#35** Rate limiting + validation hardening
+
 _Full 47-task checklist lives in the build plan; later tasks are tracked as we reach each phase._
