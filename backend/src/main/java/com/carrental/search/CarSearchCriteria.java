@@ -17,8 +17,21 @@ public record CarSearchCriteria(
         BigDecimal maxPrice,
         OffsetDateTime from,
         OffsetDateTime to,
+        /*price, asc. desc*/
         String sort,
         int page,
         int size
 ) {
+    /**
+     * A stable string key over every field that affects the result set — used as
+     * the Redis cache key (Task #34). Two criteria produce the same key iff they
+     * would return the same page, so distinct filters never collide.
+     */
+    public String cacheKey() {
+        return String.join("|",
+                String.valueOf(city), String.valueOf(category), String.valueOf(keyword),
+                String.valueOf(minPrice), String.valueOf(maxPrice),
+                String.valueOf(from), String.valueOf(to),
+                sort, String.valueOf(page), String.valueOf(size));
+    }
 }

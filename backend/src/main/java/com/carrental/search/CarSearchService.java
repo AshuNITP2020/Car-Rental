@@ -3,6 +3,8 @@ package com.carrental.search;
 import com.carrental.booking.BookingStatus;
 import com.carrental.car.Car;
 import com.carrental.car.CarStatus;
+import com.carrental.config.CacheConfig;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -23,21 +25,21 @@ public class CarSearchService {
         this.repo = repo;
     }
 
+    @Cacheable(cacheNames = CacheConfig.CAR_SEARCH_CACHE, key = "#carSearchCriteria.cacheKey()",
+            condition = "#carSearchCriteria.from() == null")
     @Transactional(readOnly = true)
-    public PageResponse<CarSearchResult> search(CarSearchCriteria c) {
-        Pageable pageable = PageRequest.of(c.page(), c.size(), sortOf(c.sort()));
-        // Lowercase here (not in SQL) so the query never calls lower() on a bind
-        // parameter — lower(:nullParam) fails Postgres type inference. The text
-        // filters then match the lower(column) functional indexes (V10).
-        CarStatus available = CarStatus.AVAILABLE;   // customer search only returns bookable cars
-        String city = lower(c.city());
-        String category = lower(c.category());
-        String keywordPattern = c.keyword() == null ? null : "%" + c.keyword().toLowerCase(Locale.ROOT) + "%";
+    public PageResponse<CarSearchResult> search(CarSearchCriteria carSearchCriteria) {
+        Pageable pageable = PageRequest.of(carSearchCriteria.page(), carSearchCriteria.size(), sortOf(carSearchCriteria.sort()));
 
-        Page<Car> page = c.from() == null
-                ? repo.search(available, city, category, keywordPattern, c.minPrice(), c.maxPrice(), pageable)
-                : repo.searchAvailableBetween(available, city, category, keywordPattern, c.minPrice(), c.maxPrice(),
-                        c.from(), c.to(), BookingStatus.BLOCKING, pageable);
+        CarStatus available = CarStatus.AVAILABLE;
+        String city = lower(carSearchCriteria.city());
+        String category = lower(carSearchCriteria.category());
+        String keywordPattern = carSearchCriteria.keyword() == null ? null : "%" + carSearchCriteria.keyword().toLowerCase(Locale.ROOT) + "%";
+
+        Page<Car> page = carSearchCriteria.from() == null
+                ? repo.search(available, city, category, keywordPattern, carSearchCriteria.minPrice(), carSearchCriteria.maxPrice(), pageable)
+                : repo.searchAvailableBetween(available, city, category, keywordPattern, carSearchCriteria.minPrice(), carSearchCriteria.maxPrice(),
+                        carSearchCriteria.from(), carSearchCriteria.to(), BookingStatus.BLOCKING, pageable);
         return PageResponse.from(page.map(CarSearchResult::from));
     }
 

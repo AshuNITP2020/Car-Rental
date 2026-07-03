@@ -29,6 +29,16 @@ spring:
       mail.smtp.auth: ${MAIL_AUTH:true}
       mail.smtp.starttls.enable: ${MAIL_STARTTLS:true}
 
+  # Redis: backs the search cache (Task #34). Defaults match docker-compose (:6379).
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  # Use Redis (not the default in-memory ConcurrentMap) as the cache provider.
+  cache:
+    type: redis
+
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     producer:
@@ -78,6 +88,11 @@ app:
       key-id: ${RAZORPAY_KEY_ID:}
       key-secret: ${RAZORPAY_KEY_SECRET:}
       webhook-secret: ${RAZORPAY_WEBHOOK_SECRET:}
+  cache:
+    search-ttl-seconds: ${CACHE_SEARCH_TTL_SECONDS:60}   # bound staleness of cached search reads (#34)
+  rate-limit:                                            # per-client API throttle (#35)
+    enabled: ${RATE_LIMIT_ENABLED:true}
+    requests-per-minute: ${RATE_LIMIT_RPM:120}           # per user (or IP), fixed 60s window
   pricing:
     gst-percent: ${PRICING_GST_PERCENT:18}            # tax on the rental
     deposit-percent: ${PRICING_DEPOSIT_PERCENT:20}    # refundable security deposit
