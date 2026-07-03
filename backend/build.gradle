@@ -34,6 +34,13 @@ dependencies {
 	// not just the spring-kafka library.
 	implementation 'org.springframework.boot:spring-boot-kafka'
 
+	// Redis-backed caching for hot search reads + invalidation (Task #34).
+	// starter-data-redis brings Lettuce + the RedisConnectionFactory; starter-cache
+	// brings the Spring Cache abstraction (@Cacheable/@CacheEvict). With both on the
+	// classpath and @EnableCaching, Boot auto-wires a RedisCacheManager.
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+	implementation 'org.springframework.boot:spring-boot-starter-cache'
+
 	// Email notifications (#28). SMTP via Spring Mail; only used when
 	// app.notifications.provider=email — the default 'log' sender needs none of this.
 	implementation 'org.springframework.boot:spring-boot-starter-mail'

@@ -3,6 +3,8 @@ package com.carrental.car;
 import com.carrental.agency.AgencyRepository;
 import com.carrental.car.dto.CreateCarRequest;
 import com.carrental.car.dto.UpdateCarRequest;
+import com.carrental.config.CacheConfig;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -32,10 +34,10 @@ public class CarService {
         return CarResponse.from(load(agencyId, carId));
     }
 
+    @CacheEvict(cacheNames = CacheConfig.CAR_SEARCH_CACHE, allEntries = true)
     @Transactional
     public CarResponse create(Long agencyId, CreateCarRequest req) {
         Car car = new Car();
-        // Reference proxy — no extra SELECT just to set the FK.
         car.setAgency(agencies.getReferenceById(agencyId));
         car.setMake(req.make().trim());
         car.setModel(req.model().trim());
@@ -48,6 +50,7 @@ public class CarService {
         return CarResponse.from(saveUnique(car));
     }
 
+    @CacheEvict(cacheNames = CacheConfig.CAR_SEARCH_CACHE, allEntries = true)
     @Transactional
     public CarResponse update(Long agencyId, Long carId, UpdateCarRequest req) {
         Car car = load(agencyId, carId);
@@ -62,6 +65,7 @@ public class CarService {
         return CarResponse.from(saveUnique(car));
     }
 
+    @CacheEvict(cacheNames = CacheConfig.CAR_SEARCH_CACHE, allEntries = true)
     @Transactional
     public void delete(Long agencyId, Long carId) {
         cars.delete(load(agencyId, carId));

@@ -3,8 +3,10 @@ package com.carrental.agency;
 import com.carrental.agency.dto.AgencyResponse;
 import com.carrental.agency.dto.CreateAgencyRequest;
 import com.carrental.agency.dto.UpdateAgencyRequest;
+import com.carrental.config.CacheConfig;
 import com.carrental.user.User;
 import com.carrental.user.UserRepository;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +30,7 @@ public class AgencyService {
      * That agency_member row is what gives the user a tenant (agencyId) on
      * their next login/refresh. One agency per user for now.
      */
+    @CacheEvict(cacheNames = CacheConfig.CAR_SEARCH_CACHE, allEntries = true)
     @Transactional
     public AgencyResponse create(Long userId, CreateAgencyRequest req) {
         if (members.findFirstByUser_IdOrderByIdAsc(userId).isPresent()) {
@@ -63,6 +66,7 @@ public class AgencyService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Agency not found"));
     }
 
+    @CacheEvict(cacheNames = CacheConfig.CAR_SEARCH_CACHE, allEntries = true)
     @Transactional
     public AgencyResponse update(Long agencyId, UpdateAgencyRequest req) {
         Agency agency = agencies.findById(agencyId)
@@ -73,7 +77,6 @@ public class AgencyService {
         agency.setPayoutAccount(req.payoutAccount());
         agency.setLatitude(req.latitude());
         agency.setLongitude(req.longitude());
-        // save() optional — entity is managed within the transaction (dirty checking).
         return AgencyResponse.from(agency);
     }
 }
