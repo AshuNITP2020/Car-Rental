@@ -111,4 +111,10 @@ can finish in a sitting; you can stop after any task with a working system.
 
 **🎉 Phase 4 complete — event-driven (Kafka publish + fan-out consumers) and time-based (scheduled jobs).**
 
+### Phase 5 — Search, geo & caching
+- [x] **#32** Search endpoint (filters, sort, pagination) — `GET /api/cars/search` (customer-facing, cross-tenant). Optional, AND-combined filters: `city`/`category` (case-insensitive), `q` (free text over make·model), `minPrice`/`maxPrice`, and a `from`/`to` availability window (excludes cars with an overlapping BLOCKING booking); always restricted to AVAILABLE cars. `sort=price|newest[,asc|desc]` (allow-listed, `id` tiebreaker); `page`/`size` (≤100) returning a reusable `PageResponse<T>`. New `com.carrental.search` module (keeps the `car`↔`booking` packages cycle-free); `V10` adds `lower(city)`/`lower(category)` functional indexes for the case-insensitive filters.
+- [x] **#33** PostGIS geo search — `GET /api/cars/search/nearby?lat=&lng=&radiusKm=` ("cars near me"), AVAILABLE cars within the radius ordered nearest-first, with the same optional `category`/`q`/`minPrice`/`maxPrice` and `from`/`to` availability filters as `#32`. `V11` adds a `car.geog geography(Point,4326)` STORED generated column (derived from `longitude`/`latitude`, so it never drifts and the entity needn't map it) plus a GiST index; a native query uses PostGIS `ST_DWithin` (radius), `ST_Distance` (the reported `distanceKm`) and the `<->` operator (nearest-first ordering).
+- [ ] **#34** Redis caching + invalidation
+- [ ] **#35** Rate limiting + validation hardening
+
 _Full 47-task checklist lives in the build plan; later tasks are tracked as we reach each phase._
