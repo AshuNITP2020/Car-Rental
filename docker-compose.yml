@@ -76,7 +76,50 @@ services:
       retries: 12
     restart: unless-stopped
 
+  minio:
+    # S3-compatible object storage for car images (Task #36), used when the
+    # backend runs with app.storage.provider=s3. Lets you exercise the real S3
+    # code path locally with no AWS account. API on :9000, web console on :9001
+    # (log in with the root user/password below).
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    container_name: carrental-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    ports:
+      - "${MINIO_PORT:-9000}:9000"            # S3 API — the backend connects here
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"    # browser console
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  createbuckets:
+    # One-shot: waits for MinIO, then creates the image bucket (idempotent).
+    # Exits 0 when done — it's normal to see it "Exited (0)".
+    # Shares MinIO's network namespace so it reaches the server on localhost —
+    # robust even where the Docker bridge blocks container-to-container traffic.
+    image: minio/mc:RELEASE.2025-08-13T08-35-41Z
+    container_name: carrental-minio-init
+    network_mode: "service:minio"
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set local http://localhost:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin}; do echo 'waiting for minio...'; sleep 1; done &&
+      mc mb --ignore-existing local/${STORAGE_S3_BUCKET:-car-images} &&
+      echo 'MinIO bucket ready: ${STORAGE_S3_BUCKET:-car-images}'
+      "
+    restart: "no"
+
 volumes:
   pgdata:
   redisdata:
   kafkadata:
+  miniodata:
