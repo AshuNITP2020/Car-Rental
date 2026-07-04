@@ -49,6 +49,15 @@ dependencies {
 	// app.payments.provider=razorpay; the default mock gateway needs none of this.
 	implementation 'com.razorpay:razorpay-java:1.4.8'
 
+	// Object storage for car images (Task #36). AWS SDK v2 S3 client + presigner,
+	// used ONLY when app.storage.provider=s3 (works against S3, Cloudflare R2 or
+	// MinIO via an endpoint override). The default 'local' provider writes to disk
+	// and needs none of this. url-connection-client is a lightweight sync HTTP
+	// client (avoids pulling Netty).
+	implementation platform('software.amazon.awssdk:bom:2.28.16')
+	implementation 'software.amazon.awssdk:s3'
+	implementation 'software.amazon.awssdk:url-connection-client'
+
 	//Authentication/Authorization.
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'

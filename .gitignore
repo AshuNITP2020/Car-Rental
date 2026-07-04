@@ -41,3 +41,6 @@ application-local.properties
 # ── Docker / data volumes ──────────────────────
 docker-data/
 pgdata/
+
+# ── Local object storage (Task #36, app.storage.provider=local) ──
+data/

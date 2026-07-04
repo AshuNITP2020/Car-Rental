@@ -54,8 +54,11 @@ public class RateLimitFilter extends OncePerRequestFilter {
         }
         String path = request.getRequestURI();
 
+        // Limit the API only; never the payment webhook, the health probe, or static
+        // image serving (a gallery page can fetch many images at once).
         return !path.startsWith("/api/")
                 || path.startsWith("/api/payments/webhook")
+                || path.startsWith("/api/media/")
                 || path.equals("/api/health");
     }
 
