@@ -117,4 +117,27 @@ can finish in a sitting; you can stop after any task with a working system.
 - [x] **#34** Redis caching + invalidation — non-availability car searches (`GET /api/cars/search` without a `from`/`to` window) are cached in Redis via Spring Cache (`@Cacheable` keyed by the criteria, JSON values, bounded TTL `app.cache.search-ttl-seconds`=60). Availability-window searches are skipped (time-sensitive, low hit-rate). Invalidation is coarse-but-correct: `@CacheEvict(allEntries=true)` on every `CarService`/`AgencyService` write (the only writes that change which AVAILABLE cars a search returns — bookings never mutate `car.status`). A custom `RedisCacheManager` uses a **synchronous** writer (`immediateWrites(true)`) so eviction is read-your-writes — Boot's default Lettuce writer is async, which would let a write be followed by a stale hit.
 - [x] **#35** Rate limiting + validation hardening — a Redis-backed **fixed-window rate limiter** (`RateLimitFilter`, in the security chain after JWT auth) caps each client (authenticated user id, else remote IP) at `app.rate-limit.requests-per-minute`=120 per 60s window, returning **429 + `Retry-After`** on breach; it fails *open* (a Redis hiccup never blocks traffic) and skips the payment webhook + health probe. Plus a global `@RestControllerAdvice` (`ApiExceptionHandler`) that maps every failure to one `ApiError` JSON shape — bean-validation → 400 with per-field messages, `ResponseStatusException` reasons surfaced (Boot hides them by default), unexpected errors → 500 without leaking internals.
 
-**Phase 5 complete.** _Full 47-task checklist lives in the build plan; later tasks are tracked as we reach each phase._
+**Phase 5 complete.**
+
+### Phase 6 — Dashboard & media
+- [x] **#36** Car image upload (S3/R2) — a pluggable `ObjectStorage` abstraction (same swap-behind-config pattern as the payment gateway/notification sender): the default `local` provider writes to disk and serves bytes back via `GET /api/media/**` (zero setup), while the `s3` provider (`app.storage.provider=s3`, AWS SDK v2) targets S3 / Cloudflare R2 / MinIO with presigned GET URLs. `V12` adds a `car_image` child table (order + content type + storage key). Agency-scoped management under `/api/agency/cars/{carId}/images` (multipart upload, list, delete — image-type + size + count validated, tenant-checked) and a customer read at `/api/cars/{carId}/images`.
+
+  <details><summary><b>Running the S3 path locally with MinIO</b></summary>
+
+  MinIO (S3-compatible, no AWS account) is in `docker-compose.yml`. Start it and create the bucket:
+  ```
+  docker compose up -d minio createbuckets   # API :9000, console :9001 (minioadmin/minioadmin)
+  ```
+  Then run the backend with the `s3` provider pointed at it (values are in `.env.example`):
+  ```
+  STORAGE_PROVIDER=s3 STORAGE_S3_ENDPOINT=http://localhost:9000 \
+  STORAGE_S3_BUCKET=car-images STORAGE_S3_REGION=us-east-1 \
+  STORAGE_S3_ACCESS_KEY=minioadmin STORAGE_S3_SECRET_KEY=minioadmin ./gradlew bootRun
+  ```
+  Uploads now go into MinIO and image URLs are presigned MinIO links. `S3ObjectStorageTest` verifies this round trip (it self-skips when MinIO isn't up). The default (no env vars) stays `local` — nothing required.
+  </details>
+- [x] **#37** KYC/insurance document upload — **private** documents (contrast with #36's public images): a generic `document` table (`owner_type` USER/CAR + `owner_id` + `doc_type` + review `status`) reusing `ObjectStorage` under a private key prefix. Users upload their own KYC docs (`/api/me/kyc-documents`), agencies upload a car's insurance/registration (`/api/agency/cars/{carId}/documents`). Bytes are served **only** through an authenticated `GET /api/documents/{id}/content` that re-checks authorization per request (owner, the car's agency, or platform admin) — never the public `/api/media` path, never a shareable presigned URL; non-owners get 404 (existence hidden). Platform-admin review at `/api/admin/documents` verify/reject, with KYC decisions propagating to `user.kycStatus`. `V13` adds the table.
+- [ ] **#38** Agency dashboard analytics
+- [ ] **#39** Reviews and ratings
+
+_Full 47-task checklist lives in the build plan; later tasks are tracked as we reach each phase._
