@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
- * Task #34: the customer car-search cache and its invalidation, against the real
+ * the customer car-search cache and its invalidation, against the real
  * (dev) Redis + Postgres. {@code @Transactional} rolls the DB rows back; Redis
  * writes are not transactional, so each test scopes its search to a unique city
  * (unique cache key) and {@link #clearCache()} wipes the region afterwards.

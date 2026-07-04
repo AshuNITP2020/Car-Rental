@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Private document handling (Task #37): KYC (user) and car insurance/registration
+ * Private document handling: KYC (user) and car insurance/registration
  * uploads, an authorized download path, and admin review. The whole point vs car
  * images (#36) is that <em>every</em> read goes through {@link #authorize}: only
  * the owner (the user, or the car's agency) or a platform admin may see a document,

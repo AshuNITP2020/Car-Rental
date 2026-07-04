@@ -11,7 +11,6 @@ build/
 out/
 bin/
 
-# ── Node / React (added in Task #3) ────────────
 node_modules/
 dist/
 .vite/
@@ -42,5 +41,4 @@ application-local.properties
 docker-data/
 pgdata/
 
-# ── Local object storage (Task #36, app.storage.provider=local) ──
 data/

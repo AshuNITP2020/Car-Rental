@@ -1,4 +1,4 @@
--- V8: notifications (Task #28). One row per message sent to a user, written by
+-- V8: notifications. One row per message sent to a user, written by
 -- the notification consumer when it reacts to a domain event. The unique index
 -- makes the consumer idempotent under Kafka's at-least-once delivery: a
 -- re-delivered event won't create a duplicate notification.

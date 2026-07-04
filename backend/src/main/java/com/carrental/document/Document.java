@@ -17,7 +17,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.OffsetDateTime;
 
 /**
- * A private document (Task #37): KYC (owned by a user) or car insurance/
+ * A private document: KYC (owned by a user) or car insurance/
  * registration (owned by a car). The bytes live in object storage under
  * {@code objectKey}; access is always mediated by an authorization check — see
  * {@link DocumentService}. {@code ownerId} is polymorphic (a user id or a car id

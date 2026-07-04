@@ -17,7 +17,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.OffsetDateTime;
 
 /**
- * Metadata for one image of a car (Task #36). The bytes live in object storage
+ * Metadata for one image of a car. The bytes live in object storage
  * under {@code objectKey}; this row records which car owns it, its order, and
  * enough to serve it back ({@code contentType}, {@code sizeBytes}).
  */

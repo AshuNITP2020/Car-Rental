@@ -24,14 +24,14 @@ public interface CarRepository extends JpaRepository<Car, Long> {
      * Pessimistic write lock on the car row -> SELECT ... FOR UPDATE.
      * Concurrent bookings for the same car serialize behind this lock, which
      * makes the subsequent app-level overlap check race-free. The lock is held
-     * until the surrounding transaction commits. (Task #16)
+     * until the surrounding transaction commits.
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select c from Car c where c.id = :id")
     Optional<Car> findByIdForUpdate(Long id);
 
     /**
-     * Optimistic variant (Task #17): reads the car and schedules a version
+     * Optimistic variant: reads the car and schedules a version
      * bump at flush. Two concurrent bookings both force-increment, so the
      * second to commit fails with an optimistic-lock error and is retried.
      */

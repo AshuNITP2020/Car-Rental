@@ -114,7 +114,7 @@ public class BookingService {
     }
 
     /**
-     * Pessimistic-lock variant (Task #16): take a row lock on the car first, so
+     * Pessimistic-lock variant: take a row lock on the car first, so
      * concurrent bookings for that car serialize. Holding the lock makes the
      * app-level overlap check reliable -> we can reject overlaps with a clean
      * check instead of relying on catching the constraint violation. The
@@ -137,7 +137,7 @@ public class BookingService {
     }
 
     /**
-     * Optimistic-lock variant (Task #17): no lock is held. We force-increment
+     * Optimistic-lock variant: no lock is held. We force-increment
      * the car's @Version on each booking; if a concurrent booking commits first,
      * our commit fails with an optimistic-lock error and we retry in a fresh
      * transaction (where the overlap check now sees the committed booking -> 409).

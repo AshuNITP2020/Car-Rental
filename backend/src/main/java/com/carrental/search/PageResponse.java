@@ -7,7 +7,7 @@ import java.util.List;
 /**
  * A page of results plus the metadata a client needs to page through them.
  * Decouples the API from Spring Data's {@code Page} (which serializes a large,
- * unstable shape). Generic so it can wrap any result type. (Task #32)
+ * unstable shape). Generic so it can wrap any result type.
  */
 public record PageResponse<T>(
         List<T> content,

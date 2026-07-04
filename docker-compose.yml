@@ -77,7 +77,7 @@ services:
     restart: unless-stopped
 
   minio:
-    # S3-compatible object storage for car images (Task #36), used when the
+    # S3-compatible object storage for car images, used when the
     # backend runs with app.storage.provider=s3. Lets you exercise the real S3
     # code path locally with no AWS account. API on :9000, web console on :9001
     # (log in with the root user/password below).

@@ -15,7 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Task #35: the global exception handler turns a bean-validation failure into the
+ * the global exception handler turns a bean-validation failure into the
  * consistent {@link ApiError} shape (400 + per-field errors), end to end through
  * the security + MVC chain. Rate limiting is disabled here so this exercises only
  * the validation contract.

@@ -17,7 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 /**
- * A user manages their own KYC documents (Task #37). Everything is scoped to the
+ * A user manages their own KYC documents. Everything is scoped to the
  * caller's own id from the token, so a user can only ever see/change their own.
  *   POST   /api/me/kyc-documents   (multipart: file, type=KYC_IDENTITY|KYC_ADDRESS)
  *   GET    /api/me/kyc-documents

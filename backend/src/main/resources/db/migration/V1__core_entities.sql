@@ -8,8 +8,6 @@
 --   * snake_case names (Postgres convention; Hibernate maps CamelCase -> snake)
 --   * enum-like columns are VARCHAR + CHECK, values UPPERCASE to match
 --     Java enums persisted with @Enumerated(STRING)
---   * geo is stored as plain latitude/longitude for now; a real PostGIS
---     geometry column + GiST index arrives in Task #33 (geo search)
 --   * booking/payment/review/notification come in their own later migrations
 
 -- ── users ─────────────────────────────────────────────────────────────────

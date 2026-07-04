@@ -10,7 +10,7 @@ import java.math.BigDecimal;
  * {@code CarResponse}: it carries the owning agency's name + city (and the car's
  * coordinates) so a customer can see where the car is without a second call.
  * Built from a car whose agency is already fetched (see {@code CarSearchRepository}),
- * so {@code from} triggers no extra query. (Task #32)
+ * so {@code from} triggers no extra query.
  */
 public record CarSearchResult(
         Long id,

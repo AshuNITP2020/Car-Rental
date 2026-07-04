@@ -1,4 +1,4 @@
--- V10: case-insensitive search indexes (Task #32). V1 already indexes
+-- V10: case-insensitive search indexes. V1 already indexes
 -- car (price_per_day), car (category), car (status) and agency (city) as plain
 -- btrees. But the customer search compares city and category case-insensitively
 -- (lower(col) = lower(:param)), which a plain btree can't serve — so add

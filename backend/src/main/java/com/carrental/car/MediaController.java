@@ -14,7 +14,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.Duration;
 
 /**
- * Serves stored image bytes for the LOCAL storage provider (Task #36) — the URLs
+ * Serves stored image bytes for the LOCAL storage provider — the URLs
  * {@code LocalObjectStorage} hands out point here. Only keys that actually have a
  * {@code car_image} row are served (so this can't read arbitrary files off disk),
  * and the content type comes from that row. With {@code app.storage.provider=s3},

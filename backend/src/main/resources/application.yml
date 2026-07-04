@@ -29,7 +29,7 @@ spring:
       mail.smtp.auth: ${MAIL_AUTH:true}
       mail.smtp.starttls.enable: ${MAIL_STARTTLS:true}
 
-  # Redis: backs the search cache (Task #34). Defaults match docker-compose (:6379).
+  # Redis: backs the search cache. Defaults match docker-compose (:6379).
   data:
     redis:
       host: ${REDIS_HOST:localhost}

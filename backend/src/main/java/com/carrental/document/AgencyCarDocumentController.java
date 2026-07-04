@@ -18,7 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 /**
- * An agency manages a car's insurance/registration documents (Task #37),
+ * An agency manages a car's insurance/registration documents,
  * tenant-scoped via the token — only the owning agency's cars are reachable.
  *   POST   /api/agency/cars/{carId}/documents   (multipart: file, type=INSURANCE|REGISTRATION)
  *   GET    /api/agency/cars/{carId}/documents

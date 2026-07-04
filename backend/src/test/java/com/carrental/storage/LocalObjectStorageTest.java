@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Task #36: the default local object storage — plain unit test against a temp
+ * the default local object storage — plain unit test against a temp
  * directory (no Spring), covering the put/get/url/delete round trip and the
  * path-traversal guard that protects the media endpoint.
  */

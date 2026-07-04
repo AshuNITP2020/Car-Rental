@@ -24,7 +24,7 @@ import java.time.Duration;
 import java.util.Optional;
 
 /**
- * S3-family object storage (Task #36): active when {@code app.storage.provider=s3}.
+ * S3-family object storage: active when {@code app.storage.provider=s3}.
  * Works against AWS S3, Cloudflare R2, or MinIO — set {@code app.storage.s3.endpoint}
  * for the non-AWS ones. Retrieval is via short-lived presigned GET URLs, so clients
  * fetch bytes straight from the bucket (the app doesn't proxy them). Dormant unless

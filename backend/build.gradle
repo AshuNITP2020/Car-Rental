@@ -26,39 +26,15 @@ dependencies {
 	implementation 'org.flywaydb:flyway-database-postgresql'
 	runtimeOnly 'org.postgresql:postgresql'
 
-	// Realistic fake data for the dev seed script (Task #12).
 	implementation 'net.datafaker:datafaker:2.4.2'
-
-	// Kafka (Task #26). Boot 4 split autoconfig into per-tech modules, so the
-	// spring-boot-kafka module is needed (it pulls spring-kafka transitively),
-	// not just the spring-kafka library.
 	implementation 'org.springframework.boot:spring-boot-kafka'
-
-	// Redis-backed caching for hot search reads + invalidation (Task #34).
-	// starter-data-redis brings Lettuce + the RedisConnectionFactory; starter-cache
-	// brings the Spring Cache abstraction (@Cacheable/@CacheEvict). With both on the
-	// classpath and @EnableCaching, Boot auto-wires a RedisCacheManager.
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 	implementation 'org.springframework.boot:spring-boot-starter-cache'
-
-	// Email notifications (#28). SMTP via Spring Mail; only used when
-	// app.notifications.provider=email — the default 'log' sender needs none of this.
 	implementation 'org.springframework.boot:spring-boot-starter-mail'
-
-	// Razorpay payment provider (Task #20). Used only when
-	// app.payments.provider=razorpay; the default mock gateway needs none of this.
 	implementation 'com.razorpay:razorpay-java:1.4.8'
-
-	// Object storage for car images (Task #36). AWS SDK v2 S3 client + presigner,
-	// used ONLY when app.storage.provider=s3 (works against S3, Cloudflare R2 or
-	// MinIO via an endpoint override). The default 'local' provider writes to disk
-	// and needs none of this. url-connection-client is a lightweight sync HTTP
-	// client (avoids pulling Netty).
 	implementation platform('software.amazon.awssdk:bom:2.28.16')
 	implementation 'software.amazon.awssdk:s3'
 	implementation 'software.amazon.awssdk:url-connection-client'
-
-	//Authentication/Authorization.
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
 	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'

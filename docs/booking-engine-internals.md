@@ -299,7 +299,6 @@ Result: **A is booked, B is cleanly rejected.** Note what made it safe:
 
 Scale this to 50 simultaneous transactions: they line up on the index, the first
 to commit wins, the other 49 re-check and get `23P01`. The 50-thread test in
-Task #19 asserts exactly this.
 
 In the app, `23P01` surfaces to Spring as `DataIntegrityViolationException`, which
 the booking service catches and turns into a friendly **409 "just got booked,

@@ -19,7 +19,7 @@ import java.time.Duration;
 import java.time.Instant;
 
 /**
- * Fixed-window rate limiter (Task #35), backed by Redis so the limit holds across
+ * Fixed-window rate limiter, backed by Redis so the limit holds across
  * instances. Per client — the authenticated user id if present, else the remote
  * IP — at most {@code requestsPerMinute} requests per 60s window. On a breach it
  * returns 429 with a {@code Retry-After} header and does not invoke the rest of

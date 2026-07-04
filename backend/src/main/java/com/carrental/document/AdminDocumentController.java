@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * Platform-admin document review (Task #37). Guarded two ways like the rest of
+ * Platform-admin document review. Guarded two ways like the rest of
  * {@code /api/admin/**}: the URL rule in SecurityConfig plus {@code @PreAuthorize}.
  * Verifying/rejecting a KYC document also moves the owning user's {@code kycStatus}.
  *   GET  /api/admin/documents?status=PENDING

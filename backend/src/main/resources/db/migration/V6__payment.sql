@@ -1,4 +1,4 @@
--- V6: payments (Task #20). A payment order is created when the user proceeds to
+-- V6: payments. A payment order is created when the user proceeds to
 -- pay for a PENDING booking; the provider (Razorpay, or a local mock in dev)
 -- returns an order id we store as provider_ref. The webhook (#21) flips it to
 -- CAPTURED and confirms the booking.

@@ -1,4 +1,4 @@
--- V12: car image metadata (Task #36). The image bytes live in object storage
+-- V12: car image metadata. The image bytes live in object storage
 -- (local disk in dev, or S3/R2 in prod); this table is the source of truth for
 -- WHICH images a car has, in WHAT order, and the storage key to fetch each.
 --

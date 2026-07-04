@@ -31,7 +31,7 @@ import java.util.Collection;
  * <p>Two methods on purpose: availability ({@code not exists} against blocking
  * bookings) lives only in {@link #searchAvailableBetween} where {@code from}/
  * {@code to} are guaranteed non-null. Keeping a nullable timestamp out of an
- * {@code IS NULL} guard avoids Postgres "could not determine data type". (Task #32)
+ * {@code IS NULL} guard avoids Postgres "could not determine data type".
  */
 public interface CarSearchRepository extends Repository<Car, Long> {
 
@@ -72,7 +72,7 @@ public interface CarSearchRepository extends Repository<Car, Long> {
             @Param("blocking") Collection<BookingStatus> blocking,
             Pageable pageable);
 
-    // ── Geo proximity search ("cars near me"), Task #33 ────────────────────────
+    // ── Geo proximity search ("cars near me"), ────────────────────────
     // This one is a NATIVE query: distance, radius filtering and nearest-first
     // ordering live in PostGIS functions (ST_Distance/ST_DWithin and the <->
     // operator) that JPQL can't express without hibernate-spatial. The origin is
