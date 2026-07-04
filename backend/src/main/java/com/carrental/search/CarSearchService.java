@@ -48,7 +48,7 @@ public class CarSearchService {
      * lat/lng, ordered nearest-first, with the same optional category/text/price
      * and availability-window filters as {@link #search}. The native query owns
      * the distance ordering (PostGIS {@code <->}), so the {@link Pageable} carries
-     * no sort. (Task #33)
+     * no sort.
      */
     @Transactional(readOnly = true)
     public PageResponse<NearbyCarResult> searchNearby(NearbyCarCriteria c) {

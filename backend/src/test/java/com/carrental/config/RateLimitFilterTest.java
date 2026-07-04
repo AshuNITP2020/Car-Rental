@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
- * Task #35: the Redis-backed fixed-window rate limiter, against the real (dev)
+ * the Redis-backed fixed-window rate limiter, against the real (dev)
  * Redis. Each test uses a unique client IP so its window counter is isolated from
  * other tests/runs (and the 60s TTL cleans the keys up).
  */

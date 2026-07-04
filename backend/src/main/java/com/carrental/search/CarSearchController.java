@@ -19,7 +19,7 @@ import java.time.OffsetDateTime;
  * All filters are optional and combine with AND; results are always cars that
  * are AVAILABLE. Supplying from+to additionally drops cars already booked for
  * an overlapping window. Requires authentication (any logged-in user), matching
- * the availability endpoint. (Task #32)
+ * the availability endpoint.
  */
 @RestController
 public class CarSearchController {

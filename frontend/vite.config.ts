@@ -8,7 +8,7 @@ export default defineConfig({
   server: {
     port: 5173,
     // Proxy API calls to the Spring Boot backend during dev so the browser
-    // can call /api/... without CORS. Wired up properly in Task #5.
+    // can call /api/... without CORS.
     proxy: {
       '/api': 'http://localhost:8080',
     },

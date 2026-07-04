@@ -5,7 +5,7 @@ import com.carrental.document.Document;
 import java.time.OffsetDateTime;
 
 /**
- * A document as returned to clients (Task #37). {@code downloadUrl} is the
+ * A document as returned to clients. {@code downloadUrl} is the
  * <em>authenticated</em> content endpoint — hitting it re-checks authorization and
  * streams the bytes. It is deliberately NOT a public or presigned URL: private
  * documents are never handed out as a shareable link.

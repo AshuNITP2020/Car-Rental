@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * The private download endpoint (Task #37). This is the deliberate contrast with
+ * The private download endpoint. This is the deliberate contrast with
  * car images: it is <b>authenticated</b> (not in the security permit-list) and
  * re-checks authorization per request inside {@link DocumentService#download}, then
  * streams the bytes with {@code no-store} so they're never cached or shared. There

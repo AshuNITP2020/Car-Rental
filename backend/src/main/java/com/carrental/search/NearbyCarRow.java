@@ -7,7 +7,7 @@ import java.math.BigDecimal;
  * column to exactly these property names (double-quoted so Postgres keeps the
  * camelCase), and Spring binds them to these getters. Carries the same fields as
  * {@link CarSearchResult} plus the computed {@code distanceKm} from the search
- * origin. (Task #33)
+ * origin.
  */
 public interface NearbyCarRow {
     Long getId();

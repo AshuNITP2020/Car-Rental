@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Task #36: car image upload/list/delete through the local storage provider,
+ * car image upload/list/delete through the local storage provider,
  * against the real (dev) Postgres. {@code @Transactional} rolls the DB rows back;
  * the storage dir is redirected under {@code build/} so uploaded files don't
  * pollute the repo (and are cleaned by {@code gradle clean}).

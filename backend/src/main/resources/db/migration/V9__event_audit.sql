@@ -1,4 +1,4 @@
--- V9: append-only audit/analytics log (Task #29). The analytics consumer writes
+-- V9: append-only audit/analytics log. The analytics consumer writes
 -- one row per domain event it receives — an independent record of "what
 -- happened", separate from the notification consumer. event_id is unique so a
 -- re-delivered event is recorded once (idempotent).

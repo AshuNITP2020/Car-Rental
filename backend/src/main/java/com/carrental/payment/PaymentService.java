@@ -137,7 +137,7 @@ public class PaymentService {
     }
 
     /**
-     * Marketplace payout on booking completion (Task #25): split the captured
+     * Marketplace payout on booking completion: split the captured
      * booking charge — platform keeps its commission, the agency receives the
      * rest, transferred to its linked account. Idempotent: at most one PAYOUT
      * per booking. Returns the payout id, or null if nothing to pay out.

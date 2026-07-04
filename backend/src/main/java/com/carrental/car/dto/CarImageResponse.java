@@ -3,7 +3,7 @@ package com.carrental.car.dto;
 import com.carrental.car.CarImage;
 
 /**
- * One image in a car's gallery, as returned to clients (Task #36). {@code url}
+ * One image in a car's gallery, as returned to clients. {@code url}
  * is where to fetch the bytes — an app-served path for the local provider, or a
  * presigned S3/R2 URL when {@code app.storage.provider=s3}.
  */

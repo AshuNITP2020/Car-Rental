@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Task #33: PostGIS "cars near me" proximity search, against the real (dev)
+ * PostGIS "cars near me" proximity search, against the real (dev)
  * Postgres+PostGIS. {@code @Transactional} rolls the seeded rows back; the
  * car.geog generated column (V11) is computed by Postgres on insert and is
  * visible to the native query in the same transaction. Every search filters on a

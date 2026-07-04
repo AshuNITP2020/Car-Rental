@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Car image gallery management (Task #36). Agency operations are tenant-scoped —
+ * Car image gallery management. Agency operations are tenant-scoped —
  * a car is only touchable through the caller's own agency — while the customer
  * read is open to any authenticated user. Bytes go to {@link ObjectStorage}
  * (local disk by default, S3/R2 behind config); this table stays the source of

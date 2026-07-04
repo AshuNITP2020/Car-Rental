@@ -41,7 +41,7 @@ public class Car {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** Optimistic-lock counter; force-incremented per booking (Task #17). */
+    /** Optimistic-lock counter; force-incremented per booking. */
     @Version
     @Column(nullable = false)
     private long version;

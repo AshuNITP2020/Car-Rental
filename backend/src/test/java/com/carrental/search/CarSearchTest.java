@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Task #32: car search filters/sort/pagination, exercised against the real (dev)
+ * car search filters/sort/pagination, exercised against the real (dev)
  * Postgres. {@code @Transactional} rolls the seeded rows back after each test;
  * because it's single-threaded the read sees its own writes. Every search is
  * scoped to a unique city so pre-existing seed data can't perturb the assertions.

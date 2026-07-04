@@ -7,7 +7,7 @@ import java.time.OffsetDateTime;
  * Normalized, validated inputs for a car search. The controller turns raw query
  * params into this (blank strings -> null, bounds checked); the service turns it
  * into a query. {@code from}/{@code to} are either both set (availability filter)
- * or both null. (Task #32)
+ * or both null.
  */
 public record CarSearchCriteria(
         String city,
@@ -24,7 +24,7 @@ public record CarSearchCriteria(
 ) {
     /**
      * A stable string key over every field that affects the result set — used as
-     * the Redis cache key (Task #34). Two criteria produce the same key iff they
+     * the Redis cache key. Two criteria produce the same key iff they
      * would return the same page, so distinct filters never collide.
      */
     public String cacheKey() {

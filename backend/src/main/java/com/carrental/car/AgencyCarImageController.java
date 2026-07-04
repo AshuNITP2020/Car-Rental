@@ -16,7 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 /**
- * Agency-facing management of a car's image gallery (Task #36), tenant-scoped via
+ * Agency-facing management of a car's image gallery, tenant-scoped via
  * the token — an agency can only touch its own cars' images. Upload is a
  * multipart form field named {@code file}.
  *   POST   /api/agency/cars/{carId}/images   (multipart: file)

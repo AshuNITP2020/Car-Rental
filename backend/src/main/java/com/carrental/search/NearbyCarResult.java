@@ -4,7 +4,7 @@ package com.carrental.search;
  * One hit from a proximity search: the matching car plus how far it is from the
  * search origin. Reuses {@link CarSearchResult} for the car payload so the two
  * search endpoints expose cars identically; {@code distanceKm} (rounded to two
- * decimals) is the only extra. (Task #33)
+ * decimals) is the only extra.
  */
 public record NearbyCarResult(double distanceKm, CarSearchResult car) {
 

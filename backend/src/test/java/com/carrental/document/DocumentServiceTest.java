@@ -33,7 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Task #37: private document upload + the authorization gate, against the real
+ * private document upload + the authorization gate, against the real
  * (dev) Postgres. {@code @Transactional} rolls DB rows back; storage writes go
  * under {@code build/}. The focus is that reads are gated — only the owner, the
  * car's agency, or a platform admin may see a document.

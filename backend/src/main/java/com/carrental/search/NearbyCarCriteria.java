@@ -9,7 +9,7 @@ import java.time.OffsetDateTime;
  * radius bounds checked); the service turns it into the native PostGIS query.
  * {@code lat}/{@code lng} are the search origin and {@code radiusKm} the cutoff;
  * the remaining filters mirror {@link CarSearchCriteria}. Results are always
- * ordered by distance from the origin, so there is no {@code sort}. (Task #33)
+ * ordered by distance from the origin, so there is no {@code sort}.
  */
 public record NearbyCarCriteria(
         double lat,

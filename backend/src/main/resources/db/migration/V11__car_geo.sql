@@ -1,7 +1,4 @@
--- V11: PostGIS geo column for "cars near me" proximity search (Task #33).
--- V1 stored car/agency coordinates as plain latitude/longitude doubles, noting
--- that "a real PostGIS geometry column + GiST index arrives in Task #33" — this
--- is that migration.
+-- V11: PostGIS geo column for "cars near me" proximity search.
 --
 -- We add a geography(Point, 4326) column to `car`, derived from its lon/lat:
 --   * geography (not geometry) so ST_Distance / ST_DWithin do great-circle math

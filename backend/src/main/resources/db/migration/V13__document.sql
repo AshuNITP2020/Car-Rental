@@ -1,5 +1,5 @@
 -- V13: private documents — KYC (user identity) and car insurance/registration
--- (Task #37). Unlike car images (public product photos, #36), these are
+-- Unlike car images (public product photos, #36), these are
 -- sensitive: the bytes live in object storage under a private key prefix and are
 -- served ONLY through an authenticated, authorized endpoint — never the public
 -- /api/media path, never a shareable presigned URL.

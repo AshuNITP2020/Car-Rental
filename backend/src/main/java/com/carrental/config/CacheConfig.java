@@ -14,7 +14,7 @@ import org.springframework.data.redis.serializer.RedisSerializationContext.Seria
 import java.time.Duration;
 
 /**
- * Redis-backed caching (Task #34). {@code @EnableCaching} turns on the Spring
+ * Redis-backed caching. {@code @EnableCaching} turns on the Spring
  * Cache aspect; this bean replaces Boot's auto-configured {@code RedisCacheManager}
  * so we can control two things that matter for correct invalidation:
  *

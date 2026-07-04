@@ -3,7 +3,7 @@ package com.carrental.storage;
 import java.util.Optional;
 
 /**
- * Abstraction over where car-image bytes physically live (Task #36). The default
+ * Abstraction over where car-image bytes physically live. The default
  * {@link LocalObjectStorage} writes to disk with zero setup; {@link S3ObjectStorage}
  * (active when {@code app.storage.provider=s3}) targets S3 / Cloudflare R2 / MinIO.
  * Same swap-behind-config pattern as the payment gateway and notification sender.

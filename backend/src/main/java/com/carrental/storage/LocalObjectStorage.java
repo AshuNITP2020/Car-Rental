@@ -13,7 +13,7 @@ import java.nio.file.Path;
 import java.util.Optional;
 
 /**
- * Default object storage: writes image bytes to a local directory (Task #36).
+ * Default object storage: writes image bytes to a local directory.
  * Active when {@code app.storage.provider=local} (the default), so the app runs
  * with zero external setup. Objects are served back through the app's media
  * endpoint, so {@link #url} returns a path like {@code /api/media/cars/42/<uuid>.jpg}.
