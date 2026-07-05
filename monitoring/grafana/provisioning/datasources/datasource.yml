@@ -1,0 +1,12 @@
+# Auto-provisioned Prometheus datasource. Grafana runs with host
+# networking, so Prometheus is at localhost:9090. Fixed uid so the provisioned
+# dashboard can reference it.
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://localhost:9090
+    isDefault: true
+    editable: true

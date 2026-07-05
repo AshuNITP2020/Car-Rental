@@ -129,13 +129,49 @@ app:
     reminder-window-hours: ${SCHED_REMINDER_WINDOW_HOURS:24}
     report-cron: ${SCHED_REPORT_CRON:0 0 1 * * *}        # nightly report at 01:00 (#31)
 
-# Actuator: expose health (and info) so we can prove the app is up.
-# More endpoints get exposed deliberately later (metrics in P7).
+# Actuator + Micrometer metrics (P7). Exposes the Prometheus scrape endpoint
+# at /actuator/prometheus for the Prometheus container to pull.
 management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,prometheus,metrics
   endpoint:
     health:
       show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      # Emit latency histogram buckets so Prometheus/Grafana can compute p95/p99
+      # and track these SLO boundaries for HTTP request timings.
+      percentiles-histogram:
+        "[http.server.requests]": true
+      slo:
+        "[http.server.requests]": 50ms,100ms,200ms,500ms,1s
+  # Boot 4 defaults metrics export off; turn it on for the real app. Using the
+  # `defaults` key (not `prometheus.*`) is deliberate: @SpringBootTest's
+  # DisableMetricsExportContextCustomizer forces this same key false via a
+  # higher-precedence test property, so tests keep export OFF (avoiding multiple
+  # test contexts fighting over the shared Prometheus registry) while the running
+  # app has it ON. PrometheusEndpointTest re-enables it just for its own context.
+  defaults:
+    metrics:
+      export:
+        enabled: true
+
+# Structured logging + request correlation.
+#  * A CorrelationIdFilter puts a per-request `requestId` into the MDC (and echoes
+#    it as the X-Request-Id header), so every log line is tied to one request and
+#    the id propagates across service calls.
+#  * Console stays human-readable, with [requestId] injected via the level pattern.
+#  * A machine-parseable JSON copy (Elastic Common Schema) is written to a file for
+#    log aggregation; MDC entries like requestId are included automatically.
+logging:
+  pattern:
+    level: "%5p [%X{requestId:-}]"
+  structured:
+    format:
+      file: ecs
+  file:
+    name: logs/car-rental.json
