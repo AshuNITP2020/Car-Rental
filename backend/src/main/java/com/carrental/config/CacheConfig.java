@@ -1,7 +1,9 @@
 package com.carrental.config;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CachingConfigurer;
 import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.cache.interceptor.CacheErrorHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
@@ -38,7 +40,7 @@ import java.time.Duration;
  */
 @Configuration
 @EnableCaching
-public class CacheConfig {
+public class CacheConfig implements CachingConfigurer {
 
     /** Hot customer car-search reads. Evicted on any car/agency write. */
     public static final String CAR_SEARCH_CACHE = "carSearch";
@@ -62,5 +64,17 @@ public class CacheConfig {
                                 .build()));
 
         return RedisCacheManager.builder(writer).cacheDefaults(cacheConfig).build();
+    }
+
+    /**
+     * Makes cache failures non-fatal (Task #44, chaos resilience). If Redis is
+     * unreachable, a cache get/put/evict is logged and ignored instead of failing
+     * the request — so {@code @Cacheable} search degrades to the database rather
+     * than throwing 500. Mirrors the rate limiter's fail-open stance; the TTL
+     * bounds any staleness once Redis returns.
+     */
+    @Override
+    public CacheErrorHandler errorHandler() {
+        return new LoggingCacheErrorHandler();
     }
 }

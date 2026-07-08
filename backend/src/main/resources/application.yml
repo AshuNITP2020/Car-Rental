@@ -34,6 +34,8 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
+      timeout: ${REDIS_TIMEOUT:2s}          # fail fast if Redis is unreachable so
+      connect-timeout: ${REDIS_CONNECT_TIMEOUT:2s}   # cache/limiter degrade quickly, not hang (#44)
 
   # Use Redis (not the default in-memory ConcurrentMap) as the cache provider.
   cache:
