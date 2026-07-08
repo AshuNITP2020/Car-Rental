@@ -141,6 +141,14 @@ management:
   endpoint:
     health:
       show-details: always
+  health:
+    # Email is an OPTIONAL provider (default app.notifications.provider=log). Boot
+    # auto-registers a mail health check because spring-boot-starter-mail is on the
+    # classpath; without SMTP creds it reports DOWN and would drag the whole
+    # /actuator/health (and the container HEALTHCHECK / k8s readiness) DOWN. Exclude
+    # it — when email is actually enabled, re-enable this for real SMTP monitoring.
+    mail:
+      enabled: false
   metrics:
     tags:
       application: ${spring.application.name}

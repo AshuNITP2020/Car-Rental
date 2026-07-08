@@ -1,0 +1,17 @@
+# Keep the build context small & reproducible: never ship local build output,
+# IDE files, logs, or secrets into the image. Gradle rebuilds inside the image.
+build/
+.gradle/
+bin/
+out/
+logs/
+data/
+*.log
+.env
+.env.*
+!.env.example
+.idea/
+*.iml
+.vscode/
+.DS_Store
+HELP.md
