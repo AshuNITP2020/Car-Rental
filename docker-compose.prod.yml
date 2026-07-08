@@ -1,0 +1,123 @@
+# Production-style deployment.
+#
+# Runs the BUILT images (backend + frontend) alongside their datastores on a
+# private bridge network, addressing each other by service name — the shape you
+# would run on a single VM / droplet. Contrast docker-compose.yml, which only
+# starts dev infra and expects the app to run on the host via `./gradlew bootRun`.
+#
+#   cp .env.prod.example .env.prod        # then edit: set POSTGRES_PASSWORD + JWT_SECRET
+#   docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
+#   # frontend on http://<host>/  ->  proxies /api to the backend
+#
+# Images default to the ones published to GHCR by .github/workflows/deploy.yml.
+# To run locally-built images instead:
+#   docker compose -f docker-compose.prod.yml build
+#
+# NOTE: this file uses normal container-to-container networking (service DNS).
+# On the project's dev machine the Docker bridge blocks container↔container
+# traffic (see docs), so validate here with `docker compose -f
+# docker-compose.prod.yml config` and actually RUN it on a real host/VM.
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-carrental}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.prod}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-carrental}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  kafka:
+    # Single-broker KRaft Kafka. Advertises its SERVICE NAME so the backend
+    # container can reach it at kafka:9092 (dev compose advertises localhost
+    # because there the app runs on the host).
+    image: apache/kafka:3.8.0
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    volumes:
+      - kafkadata:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 18
+    restart: unless-stopped
+
+  backend:
+    # Published by CI; override BACKEND_IMAGE, or `docker compose build` to use
+    # the local Dockerfile below.
+    image: ${BACKEND_IMAGE:-ghcr.io/ashunitp2020/car-rental-backend:latest}
+    build:
+      context: ./backend
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-carrental}
+      DB_USERNAME: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.prod}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      JWT_SECRET: ${JWT_SECRET:?set a long random JWT_SECRET in .env.prod}
+      # Local-disk image storage on a persistent volume by default. Switch to
+      # S3/R2/MinIO by setting STORAGE_PROVIDER=s3 + STORAGE_S3_* here.
+      STORAGE_PROVIDER: ${STORAGE_PROVIDER:-local}
+      STORAGE_LOCAL_DIR: /app/data/car-images
+      PAYMENTS_PROVIDER: ${PAYMENTS_PROVIDER:-mock}
+      NOTIFICATIONS_PROVIDER: ${NOTIFICATIONS_PROVIDER:-log}
+      JAVA_OPTS: ${JAVA_OPTS:--XX:MaxRAMPercentage=75.0}
+    volumes:
+      - backenddata:/app/data
+      - backendlogs:/app/logs
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    restart: unless-stopped
+
+  frontend:
+    image: ${FRONTEND_IMAGE:-ghcr.io/ashunitp2020/car-rental-frontend:latest}
+    build:
+      context: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
+  kafkadata:
+  backenddata:
+  backendlogs:
