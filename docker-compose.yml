@@ -118,8 +118,46 @@ services:
       "
     restart: "no"
 
+  prometheus:
+    # Scrapes the backend's /actuator/prometheus (Task #40). Uses host networking
+    # so it reaches the host-run backend at localhost:8080 over loopback — the
+    # Docker bridge blocks container↔container traffic on this host (see the MinIO
+    # note above), and the backend runs on the host via `./gradlew bootRun`, not
+    # in compose. UI at http://localhost:9090.
+    image: prom/prometheus:v2.54.1
+    container_name: carrental-prometheus
+    network_mode: host
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - promdata:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+    restart: unless-stopped
+
+  grafana:
+    # Dashboards over Prometheus (Task #40). Host networking so it reaches
+    # Prometheus at localhost:9090. Datasource + a starter dashboard are
+    # auto-provisioned from ./monitoring/grafana. UI at http://localhost:3000
+    # (login admin / admin — dev only).
+    image: grafana/grafana:11.2.0
+    container_name: carrental-grafana
+    network_mode: host
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafanadata:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
 volumes:
   pgdata:
   redisdata:
   kafkadata:
   miniodata:
+  promdata:
+  grafanadata:

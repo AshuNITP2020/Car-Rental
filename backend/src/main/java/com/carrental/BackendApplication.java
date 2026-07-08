@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
-@EnableScheduling   // enables @Scheduled jobs (hold-expiry #30, reminders/auto-complete #31)
+@EnableScheduling
 public class BackendApplication {
 
 	public static void main(String[] args) {

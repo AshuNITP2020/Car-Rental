@@ -19,6 +19,7 @@ repositories {
 
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
@@ -52,4 +53,9 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+	// Each distinct @SpringBootTest context opens its own Hikari pool; with several
+	// cached in one test JVM the default (10 each) can exhaust Postgres connections
+	// ("FATAL: sorry, too many clients already"). Cap the per-context pool for tests
+	// so many contexts coexist under max_connections. The real app is unaffected.
+	systemProperty 'spring.datasource.hikari.maximum-pool-size', '5'
 }
