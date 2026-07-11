@@ -1,1 +1,87 @@
 @import "tailwindcss";
+
+/* Class-based dark mode: toggle by adding `.dark` on <html>. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ── Semantic design tokens ──────────────────────────────────────────────
+   Light values on :root, dark overrides on .dark. `@theme inline` maps them
+   to Tailwind utilities (bg-background, text-foreground, border-border, …)
+   by *reference*, so the .dark overrides take effect at runtime. */
+:root {
+  --background: #f8fafc; /* slate-50  */
+  --foreground: #0f172a; /* slate-900 */
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --muted: #f1f5f9;              /* slate-100 */
+  --muted-foreground: #64748b;  /* slate-500 */
+  --border: #e2e8f0;            /* slate-200 */
+  --input: #e2e8f0;
+  --ring: #6366f1;              /* indigo-500 */
+  --primary: #4f46e5;           /* indigo-600 */
+  --primary-foreground: #ffffff;
+  --accent: #eef2ff;            /* indigo-50  */
+  --accent-foreground: #3730a3; /* indigo-800 */
+  --destructive: #e11d48;       /* rose-600   */
+  --destructive-foreground: #ffffff;
+}
+
+.dark {
+  --background: #020617; /* slate-950 */
+  --foreground: #e2e8f0; /* slate-200 */
+  --card: #0f172a;              /* slate-900 */
+  --card-foreground: #e2e8f0;
+  --muted: #1e293b;             /* slate-800 */
+  --muted-foreground: #94a3b8;  /* slate-400 */
+  --border: #1e293b;            /* slate-800 */
+  --input: #1e293b;
+  --ring: #6366f1;              /* indigo-500 */
+  --primary: #6366f1;           /* indigo-500 */
+  --primary-foreground: #ffffff;
+  --accent: #1e1b4b;            /* indigo-950 */
+  --accent-foreground: #c7d2fe; /* indigo-200 */
+  --destructive: #f43f5e;       /* rose-500   */
+  --destructive-foreground: #ffffff;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --radius: 0.625rem;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  html {
+    color-scheme: light dark;
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  /* Consistent focus ring */
+  :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+}
