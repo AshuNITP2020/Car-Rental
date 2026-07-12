@@ -1,27 +1,30 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import type { ReactNode } from 'react'
-import { AuthProvider } from '../auth/auth-context'
+import { useEffect, type ReactNode } from 'react'
+import { Provider } from 'react-redux'
 import { ToastProvider } from '../components/ui/toast'
+import { bootstrapSession } from '../features/auth/auth-slice'
+import { tokenStore } from '../lib/token-store'
+import { useAppDispatch } from './hooks'
+import { store } from './store'
 import { ThemeProvider } from './theme'
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      refetchOnWindowFocus: false,
-      staleTime: 30_000,
-    },
-  },
-})
+/** On app start, resolve /me from any stored tokens so a page refresh keeps
+ *  the session (status stays 'loading' until this settles). */
+function AuthBootstrap({ children }: { children: ReactNode }) {
+  const dispatch = useAppDispatch()
+  useEffect(() => {
+    if (tokenStore.get()) void dispatch(bootstrapSession())
+  }, [dispatch])
+  return children
+}
 
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider>
-      <QueryClientProvider client={queryClient}>
+      <Provider store={store}>
         <ToastProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthBootstrap>{children}</AuthBootstrap>
         </ToastProvider>
-      </QueryClientProvider>
+      </Provider>
     </ThemeProvider>
   )
 }

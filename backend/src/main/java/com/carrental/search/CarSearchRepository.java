@@ -13,6 +13,7 @@ import org.springframework.data.repository.query.Param;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Collection;
+import java.util.Optional;
 
 /**
  * Read-only, cross-tenant search over cars for customers. Lives in its own
@@ -71,6 +72,15 @@ public interface CarSearchRepository extends Repository<Car, Long> {
             @Param("to") OffsetDateTime to,
             @Param("blocking") Collection<BookingStatus> blocking,
             Pageable pageable);
+
+    /**
+     * Single car by id with its agency eagerly loaded, for the customer-facing
+     * car-detail page (which otherwise only has the per-car sub-resources). Any
+     * status is returned — availability for a given window is a separate call.
+     */
+    @EntityGraph(attributePaths = "agency")
+    @Query("select c from Car c where c.id = :id")
+    Optional<Car> findWithAgencyById(@Param("id") Long id);
 
     // ── Geo proximity search ("cars near me"), ────────────────────────
     // This one is a NATIVE query: distance, radius filtering and nearest-first

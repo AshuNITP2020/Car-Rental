@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate, Link } from 'react-router-dom'
 import { DropdownMenu } from 'radix-ui'
 import {
@@ -9,9 +10,10 @@ import {
   Store,
   User as UserIcon,
 } from 'lucide-react'
-import { useAuth } from '../../auth/auth-context'
+import { useAuth } from '../../features/auth/use-auth'
 import { cn } from '../../lib/utils'
 import { Badge } from '../ui/badge'
+import { LoadingState } from '../ui/spinner'
 import { ThemeToggle } from '../theme-toggle'
 
 type Area = 'customer' | 'agency' | 'admin'
@@ -181,7 +183,9 @@ export function AppShell() {
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-6">
-        <Outlet />
+        <Suspense fallback={<LoadingState />}>
+          <Outlet />
+        </Suspense>
       </main>
     </div>
   )

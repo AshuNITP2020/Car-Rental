@@ -44,6 +44,17 @@ public class CarSearchService {
     }
 
     /**
+     * Single car by id for the customer-facing car-detail page. Returns any
+     * status (availability for a window is checked separately); 404 if unknown.
+     */
+    @Transactional(readOnly = true)
+    public CarSearchResult getById(Long id) {
+        return repo.findWithAgencyById(id)
+                .map(CarSearchResult::from)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Car not found"));
+    }
+
+    /**
      * "Cars near me": AVAILABLE cars within {@code radiusKm} of the given
      * lat/lng, ordered nearest-first, with the same optional category/text/price
      * and availability-window filters as {@link #search}. The native query owns

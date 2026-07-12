@@ -1,6 +1,6 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { Spinner } from '../components/ui/spinner'
-import { useAuth } from './auth-context'
+import { useAuth } from '../features/auth/use-auth'
 
 function FullPageLoading() {
   return (

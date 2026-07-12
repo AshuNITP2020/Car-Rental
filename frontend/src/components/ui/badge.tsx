@@ -1,5 +1,5 @@
 import type { HTMLAttributes } from 'react'
-import { cn } from '../../lib/utils'
+import { cn, humanizeStatus } from '../../lib/utils'
 
 type Tone = 'success' | 'info' | 'warning' | 'danger' | 'neutral'
 
@@ -53,15 +53,6 @@ const STATUS_TONE: Record<string, Tone> = {
   OUT_OF_SERVICE: 'danger',
   // neutral
   REFUNDED: 'neutral',
-}
-
-/** Turn UPPER_SNAKE into "Title case". */
-export function humanizeStatus(value: string): string {
-  return value
-    .toLowerCase()
-    .split('_')
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ')
 }
 
 export function StatusBadge({ status, className }: { status: string; className?: string }) {

@@ -24,7 +24,7 @@ export class ApiRequestError extends Error {
   }
 }
 
-interface RequestOptions {
+export interface RequestOptions {
   method?: string
   /** JSON body — serialized automatically. Ignored when `form` is set. */
   body?: unknown
@@ -117,7 +117,9 @@ async function doFetch(path: string, opts: RequestOptions, accessToken: string |
   })
 }
 
-async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
+/** Core request function. Exported for the RTK Query baseQuery; feature code
+ *  should go through the `api` convenience wrappers or RTK Query endpoints. */
+export async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
   let res: Response
   try {
     res = await doFetch(path, opts, tokenStore.getAccessToken())
@@ -156,4 +158,19 @@ export const api = {
   /** Multipart upload (car images, KYC docs). */
   postForm: <T>(path: string, form: FormData, opts?: Omit<RequestOptions, 'method' | 'body' | 'form'>) =>
     request<T>(path, { ...opts, method: 'POST', form }),
+}
+
+/**
+ * Fetch binary content (e.g. an authenticated document/image) as a Blob,
+ * with the same Bearer + single-flight refresh behavior as `api`. Callers turn
+ * it into an object URL to view/download.
+ */
+export async function fetchBlob(path: string): Promise<Blob> {
+  let res = await doFetch(path, { method: 'GET' }, tokenStore.getAccessToken())
+  if (res.status === 401 && tokenStore.getRefreshToken()) {
+    const fresh = await getFreshAccessToken()
+    res = await doFetch(path, { method: 'GET' }, fresh)
+  }
+  if (!res.ok) throw await parseError(res)
+  return res.blob()
 }

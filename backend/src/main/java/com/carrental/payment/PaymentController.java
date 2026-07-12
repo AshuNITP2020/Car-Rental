@@ -25,4 +25,16 @@ public class PaymentController {
                                             @PathVariable Long bookingId) {
         return paymentService.createOrder(principal.userId(), bookingId);
     }
+
+    /**
+     * Dev-only mock payment capture (default mock provider). Confirms the
+     * caller's pending booking without a hosted checkout page. 400 when a real
+     * provider is configured.
+     *   POST /api/bookings/{bookingId}/payment/mock-capture
+     */
+    @PostMapping("/api/bookings/{bookingId}/payment/mock-capture")
+    public PaymentOrderResponse mockCapture(@AuthenticationPrincipal AuthPrincipal principal,
+                                            @PathVariable Long bookingId) {
+        return paymentService.mockCapture(principal.userId(), bookingId);
+    }
 }

@@ -33,6 +33,9 @@ public class PaymentService {
     @Value("${app.payments.currency:INR}")
     private String currency;
 
+    @Value("${app.payments.provider:mock}")
+    private String provider;
+
     public PaymentService(BookingRepository bookings, PaymentRepository payments,
                           PaymentGateway gateway, BookingStateMachine stateMachine,
                           PricingService pricing, DomainEventPublisher events) {
@@ -77,6 +80,40 @@ public class PaymentService {
         payment.setProviderRef(order.orderId());
         payments.save(payment);
 
+        return PaymentOrderResponse.from(payment, currency);
+    }
+
+    /**
+     * Dev-only convenience for the default mock provider: capture the caller's
+     * pending booking payment and confirm the booking, without a real provider
+     * webhook (there is no hosted mock checkout page). Mirrors the capture steps
+     * of {@link #handleCaptureWebhook} but is authenticated as the booking owner
+     * and never exposes the webhook secret to the client. Rejected (400) when a
+     * real provider is configured — that path uses the provider's own checkout +
+     * {@code POST /api/payments/webhook}.
+     */
+    @Transactional
+    public PaymentOrderResponse mockCapture(Long userId, Long bookingId) {
+        if (!"mock".equalsIgnoreCase(provider)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Mock capture is only available with the mock payment provider");
+        }
+        Booking booking = bookings.findByIdAndUser_Id(bookingId, userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
+
+        Payment payment = payments.findFirstByBooking_IdAndTypeAndStatus(
+                        bookingId, PaymentType.BOOKING, PaymentStatus.CREATED)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
+                        "No payment order awaiting capture — create the order first"));
+
+        payment.setStatus(PaymentStatus.CAPTURED);
+        payment.setCapturedRef("pay_mock_" + payment.getId());
+
+        events.publish(DomainEvent.PAYMENT_CAPTURED, booking);
+        if (booking.getStatus() == BookingStatus.PENDING) {
+            stateMachine.transition(booking, BookingStatus.CONFIRMED);
+            events.publish(DomainEvent.BOOKING_CONFIRMED, booking);
+        }
         return PaymentOrderResponse.from(payment, currency);
     }
 

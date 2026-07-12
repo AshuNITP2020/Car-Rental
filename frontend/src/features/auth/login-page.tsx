@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { useAuth } from '../../auth/auth-context'
+import { useAuth } from './use-auth'
 import { Button } from '../../components/ui/button'
 import { Field } from '../../components/ui/field'
 import { Input } from '../../components/ui/input'
