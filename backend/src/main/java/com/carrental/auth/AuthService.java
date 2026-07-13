@@ -51,12 +51,16 @@ public class AuthService {
     @Transactional(readOnly = true)
     public AuthResponse login(LoginRequest req) {
         String email = req.email().trim().toLowerCase();
-        // Same generic error whether the email is unknown or the password is
-        // wrong, so we don't reveal which emails exist.
+        // Distinct errors by product decision: an unknown email gets a 404 so
+        // the UI can steer the user to sign-up. Trade-off (accepted): this
+        // reveals which emails have accounts (user enumeration).
         User user = users.findByEmail(email)
-                .filter(u -> passwordEncoder.matches(req.password(), u.getPasswordHash()))
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.UNAUTHORIZED, "Invalid email or password"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "No account found with this email"));
+        if (!passwordEncoder.matches(req.password(), user.getPasswordHash())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+                    "Incorrect password — please try again");
+        }
         return tokensFor(user);
     }
 

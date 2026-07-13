@@ -33,6 +33,20 @@ public class PaymentService {
     @Value("${app.payments.currency:INR}")
     private String currency;
 
+    @Value("${app.payments.provider:mock}")
+    private String provider;
+
+    /** Public key id the browser checkout widget needs (never the secret). */
+    @Value("${app.payments.razorpay.key-id:}")
+    private String razorpayKeyId;
+
+    /** The checkout key id to hand the client for this payment, or null. */
+    private String checkoutKeyIdFor(Payment p) {
+        return "RAZORPAY".equalsIgnoreCase(p.getProvider()) && !razorpayKeyId.isBlank()
+                ? razorpayKeyId
+                : null;
+    }
+
     public PaymentService(BookingRepository bookings, PaymentRepository payments,
                           PaymentGateway gateway, BookingStateMachine stateMachine,
                           PricingService pricing, DomainEventPublisher events) {
@@ -62,7 +76,7 @@ public class PaymentService {
         var existing = payments.findFirstByBooking_IdAndTypeAndStatus(
                 bookingId, PaymentType.BOOKING, PaymentStatus.CREATED);
         if (existing.isPresent()) {
-            return PaymentOrderResponse.from(existing.get(), currency);
+            return PaymentOrderResponse.from(existing.get(), currency, checkoutKeyIdFor(existing.get()));
         }
 
         BigDecimal amount = amountToCharge(booking);
@@ -77,7 +91,82 @@ public class PaymentService {
         payment.setProviderRef(order.orderId());
         payments.save(payment);
 
-        return PaymentOrderResponse.from(payment, currency);
+        return PaymentOrderResponse.from(payment, currency, checkoutKeyIdFor(payment));
+    }
+
+    /**
+     * Confirms a Razorpay checkout from the browser handshake: verifies the
+     * returned signature (HMAC of order|payment with the key secret), then
+     * captures the payment and confirms the booking — the same steps the
+     * webhook performs, but immediate. Idempotent per payment.
+     */
+    @Transactional
+    public PaymentOrderResponse verifyCheckout(Long userId, Long bookingId,
+                                               String orderId, String paymentId, String signature) {
+        Booking booking = bookings.findByIdAndUser_Id(bookingId, userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
+
+        Payment payment = payments.findFirstByBooking_IdAndTypeAndStatus(
+                        bookingId, PaymentType.BOOKING, PaymentStatus.CREATED)
+                .orElseGet(() -> payments.findFirstByBooking_IdAndTypeAndStatus(
+                                bookingId, PaymentType.BOOKING, PaymentStatus.CAPTURED)
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
+                                "No payment order for this booking — create the order first")));
+
+        if (payment.getStatus() == PaymentStatus.CAPTURED) {
+            return PaymentOrderResponse.from(payment, currency, null); // already done (idempotent)
+        }
+        if (!payment.getProviderRef().equals(orderId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Order id does not match this booking's payment");
+        }
+        if (!gateway.verifyCheckoutSignature(orderId, paymentId, signature)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid payment signature");
+        }
+
+        payment.setStatus(PaymentStatus.CAPTURED);
+        payment.setCapturedRef(paymentId);
+
+        events.publish(DomainEvent.PAYMENT_CAPTURED, booking);
+        if (booking.getStatus() == BookingStatus.PENDING) {
+            stateMachine.transition(booking, BookingStatus.CONFIRMED);
+            events.publish(DomainEvent.BOOKING_CONFIRMED, booking);
+        }
+        return PaymentOrderResponse.from(payment, currency, null);
+    }
+
+    /**
+     * Dev-only convenience for the default mock provider: capture the caller's
+     * pending booking payment and confirm the booking, without a real provider
+     * webhook (there is no hosted mock checkout page). Mirrors the capture steps
+     * of {@link #handleCaptureWebhook} but is authenticated as the booking owner
+     * and never exposes the webhook secret to the client. Rejected (400) when a
+     * real provider is configured — that path uses the provider's own checkout +
+     * {@code POST /api/payments/webhook}.
+     */
+    @Transactional
+    public PaymentOrderResponse mockCapture(Long userId, Long bookingId) {
+        if (!"mock".equalsIgnoreCase(provider)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Mock capture is only available with the mock payment provider");
+        }
+        Booking booking = bookings.findByIdAndUser_Id(bookingId, userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
+
+        Payment payment = payments.findFirstByBooking_IdAndTypeAndStatus(
+                        bookingId, PaymentType.BOOKING, PaymentStatus.CREATED)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
+                        "No payment order awaiting capture — create the order first"));
+
+        payment.setStatus(PaymentStatus.CAPTURED);
+        payment.setCapturedRef("pay_mock_" + payment.getId());
+
+        events.publish(DomainEvent.PAYMENT_CAPTURED, booking);
+        if (booking.getStatus() == BookingStatus.PENDING) {
+            stateMachine.transition(booking, BookingStatus.CONFIRMED);
+            events.publish(DomainEvent.BOOKING_CONFIRMED, booking);
+        }
+        return PaymentOrderResponse.from(payment, currency, null);
     }
 
     /**
@@ -189,6 +278,7 @@ public class PaymentService {
     private BigDecimal amountToCharge(Booking booking) {
         BigDecimal amount = booking.getAmount() != null ? booking.getAmount() : BigDecimal.ZERO;
         BigDecimal deposit = booking.getDeposit() != null ? booking.getDeposit() : BigDecimal.ZERO;
-        return amount.add(deposit);
+        BigDecimal oneWayFee = booking.getOneWayFee() != null ? booking.getOneWayFee() : BigDecimal.ZERO;
+        return amount.add(deposit).add(oneWayFee);
     }
 }

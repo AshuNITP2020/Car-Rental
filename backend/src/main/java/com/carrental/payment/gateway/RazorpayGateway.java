@@ -25,6 +25,8 @@ public class RazorpayGateway implements PaymentGateway {
 
     private final RazorpayClient client;
 
+    private final String keySecret;
+
     private final String webhookSecret;
 
     public RazorpayGateway(@Value("${app.payments.razorpay.key-id}") String keyId,
@@ -32,7 +34,30 @@ public class RazorpayGateway implements PaymentGateway {
                            @Value("${app.payments.razorpay.webhook-secret:}") String webhookSecret)
             throws RazorpayException {
         this.client = new RazorpayClient(keyId, keySecret);
+        this.keySecret = keySecret;
         this.webhookSecret = webhookSecret;
+    }
+
+    /**
+     * Verifies the signature Razorpay Checkout returns to the browser after a
+     * successful payment: HMAC-SHA256("orderId|paymentId", key secret). This is
+     * Razorpay's standard client-handshake verification, so a booking can be
+     * confirmed immediately without waiting for the webhook.
+     */
+    @Override
+    public boolean verifyCheckoutSignature(String orderId, String paymentId, String signature) {
+        if (orderId == null || paymentId == null || signature == null) {
+            return false;
+        }
+        JSONObject attributes = new JSONObject();
+        attributes.put("razorpay_order_id", orderId);
+        attributes.put("razorpay_payment_id", paymentId);
+        attributes.put("razorpay_signature", signature);
+        try {
+            return Utils.verifyPaymentSignature(attributes, keySecret);
+        } catch (RazorpayException e) {
+            return false;
+        }
     }
 
     @Override

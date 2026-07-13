@@ -5,9 +5,11 @@ import com.carrental.booking.dto.CreateBookingRequest;
 import com.carrental.car.Car;
 import com.carrental.car.CarRepository;
 import com.carrental.car.CarStatus;
+import com.carrental.city.CityService;
 import com.carrental.events.DomainEvent;
 import com.carrental.events.DomainEventPublisher;
 import com.carrental.payment.PaymentService;
+import com.carrental.pricing.OneWayFeeService;
 import com.carrental.pricing.PriceBreakdown;
 import com.carrental.pricing.PricingService;
 import com.carrental.user.UserRepository;
@@ -24,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
 @Service
@@ -39,6 +42,8 @@ public class BookingService {
     private final BookingStateMachine stateMachine;
     private final PaymentService paymentService;
     private final PricingService pricing;
+    private final OneWayFeeService oneWayFees;
+    private final CityService cities;
     private final DomainEventPublisher events;
     private final TransactionTemplate tx;
 
@@ -47,7 +52,8 @@ public class BookingService {
 
     public BookingService(BookingRepository bookings, CarRepository cars, UserRepository users,
                           BookingStateMachine stateMachine, PaymentService paymentService,
-                          PricingService pricing, DomainEventPublisher events,
+                          PricingService pricing, OneWayFeeService oneWayFees, CityService cities,
+                          DomainEventPublisher events,
                           PlatformTransactionManager txManager) {
         this.bookings = bookings;
         this.cars = cars;
@@ -55,6 +61,8 @@ public class BookingService {
         this.stateMachine = stateMachine;
         this.paymentService = paymentService;
         this.pricing = pricing;
+        this.oneWayFees = oneWayFees;
+        this.cities = cities;
         this.events = events;
         this.tx = new TransactionTemplate(txManager);
     }
@@ -184,6 +192,18 @@ public class BookingService {
 
     /** Builds and flushes a PENDING hold. Lets DB constraint violations propagate. */
     private Booking buildAndSave(Long userId, Car car, CreateBookingRequest req, String idempotencyKey) {
+        String pickupCity = car.getCurrentCity() != null ? car.getCurrentCity() : car.getAgency().getCity();
+        TripType tripType = req.tripTypeOrDefault();
+
+        // One-way: resolve (and validate) the distance-based relocation fee now,
+        // so the booking stores exactly what the quote showed.
+        BigDecimal oneWayFee = BigDecimal.ZERO;
+        String dropCity = null;
+        if (tripType == TripType.ONE_WAY) {
+            oneWayFee = oneWayFees.feeFor(pickupCity, req.dropCity());
+            dropCity = req.dropCity().trim();
+        }
+
         Booking booking = new Booking();
         booking.setCar(car);
         booking.setUser(users.getReferenceById(userId));
@@ -192,7 +212,11 @@ public class BookingService {
         booking.setEndTs(req.to());
         booking.setStatus(BookingStatus.PENDING);
         booking.setExpiresAt(OffsetDateTime.now().plusMinutes(holdMinutes));
-        PriceBreakdown price = pricing.quote(car.getPricePerDay(), req.from(), req.to());
+        booking.setTripType(tripType);
+        booking.setPickupCity(pickupCity);
+        booking.setDropCity(dropCity);
+        booking.setOneWayFee(oneWayFee);
+        PriceBreakdown price = pricing.quote(car.getPricePerDay(), req.from(), req.to(), oneWayFee);
         booking.setAmount(pricing.chargeableAmount(price));
         booking.setDeposit(price.deposit());
         booking.setIdempotencyKey(idempotencyKey);
@@ -215,14 +239,15 @@ public class BookingService {
     /** Agency starts the rental: CONFIRMED -> ACTIVE. Scoped to the caller's agency. */
     @Transactional
     public BookingResponse activateForAgency(Long agencyId, Long bookingId) {
-        return transitionForAgency(agencyId, bookingId, BookingStatus.ACTIVE, null);
+        return BookingResponse.from(transitionForAgency(agencyId, bookingId, BookingStatus.ACTIVE, null));
     }
 
     /** Agency closes the rental on return: ACTIVE -> COMPLETED, then pays out. */
     @Transactional
     public BookingResponse completeForAgency(Long agencyId, Long bookingId) {
-        BookingResponse response = transitionForAgency(
+        Booking booking = transitionForAgency(
                 agencyId, bookingId, BookingStatus.COMPLETED, DomainEvent.BOOKING_COMPLETED);
+        relocateIfOneWay(booking);
         // Payout runs in its own transaction (REQUIRES_NEW); a payout-provider
         // failure must not roll back the completion the rental already earned.
         // Production would do this async (event/outbox, Phase 4) for resilience.
@@ -232,18 +257,37 @@ public class BookingService {
             log.warn("Payout failed for booking {} (completion stands; retry later): {}",
                     bookingId, e.getMessage());
         }
-        return response;
+        return BookingResponse.from(booking);
     }
 
-    private BookingResponse transitionForAgency(Long agencyId, Long bookingId,
-                                                BookingStatus target, String eventType) {
+    private Booking transitionForAgency(Long agencyId, Long bookingId,
+                                        BookingStatus target, String eventType) {
         Booking booking = bookings.findByIdAndAgency_Id(bookingId, agencyId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
         stateMachine.transition(booking, target);
         if (eventType != null) {
             events.publish(eventType, booking);   // forwarded to Kafka after commit
         }
-        return BookingResponse.from(booking);
+        return booking;
+    }
+
+    /**
+     * A completed one-way trip leaves the car at the drop city: its
+     * current city (and coordinates, for geo search) move there, so future
+     * searches find it where it actually is.
+     */
+    private void relocateIfOneWay(Booking booking) {
+        if (booking.getTripType() != TripType.ONE_WAY || booking.getDropCity() == null) {
+            return;
+        }
+        Car car = booking.getCar();
+        car.setCurrentCity(booking.getDropCity());
+        cities.find(booking.getDropCity()).ifPresent(c -> {
+            car.setLatitude(c.latitude());
+            car.setLongitude(c.longitude());
+        });
+        log.info("One-way booking {} completed: car {} relocated to {}",
+                booking.getId(), car.getId(), booking.getDropCity());
     }
 
     @Transactional(readOnly = true)
@@ -284,6 +328,7 @@ public class BookingService {
             var overdue = bookings.findByStatusAndEndTsBefore(BookingStatus.ACTIVE, OffsetDateTime.now());
             overdue.forEach(b -> {
                 stateMachine.transition(b, BookingStatus.COMPLETED);
+                relocateIfOneWay(b);   // auto-completed one-ways also move the car
                 events.publish(DomainEvent.BOOKING_COMPLETED, b);
             });
             return overdue.stream().map(Booking::getId).toList();

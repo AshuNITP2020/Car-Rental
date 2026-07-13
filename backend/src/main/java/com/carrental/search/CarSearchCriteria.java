@@ -17,6 +17,8 @@ public record CarSearchCriteria(
         BigDecimal maxPrice,
         OffsetDateTime from,
         OffsetDateTime to,
+        /** Restrict to one agency's fleet (its public profile page). */
+        Long agencyId,
         /*price, asc. desc*/
         String sort,
         int page,
@@ -31,7 +33,7 @@ public record CarSearchCriteria(
         return String.join("|",
                 String.valueOf(city), String.valueOf(category), String.valueOf(keyword),
                 String.valueOf(minPrice), String.valueOf(maxPrice),
-                String.valueOf(from), String.valueOf(to),
+                String.valueOf(from), String.valueOf(to), String.valueOf(agencyId),
                 sort, String.valueOf(page), String.valueOf(size));
     }
 }

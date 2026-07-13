@@ -4,6 +4,8 @@ import com.carrental.booking.BookingStatus;
 import com.carrental.car.Car;
 import com.carrental.car.CarStatus;
 import com.carrental.config.CacheConfig;
+import com.carrental.review.CarRatingRow;
+import com.carrental.review.ReviewRepository;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -14,15 +16,21 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class CarSearchService {
 
     private final CarSearchRepository repo;
+    private final ReviewRepository reviews;
 
-    public CarSearchService(CarSearchRepository repo) {
+    public CarSearchService(CarSearchRepository repo, ReviewRepository reviews) {
         this.repo = repo;
+        this.reviews = reviews;
     }
 
     @Cacheable(cacheNames = CacheConfig.CAR_SEARCH_CACHE, key = "#carSearchCriteria.cacheKey()",
@@ -37,10 +45,41 @@ public class CarSearchService {
         String keywordPattern = carSearchCriteria.keyword() == null ? null : "%" + carSearchCriteria.keyword().toLowerCase(Locale.ROOT) + "%";
 
         Page<Car> page = carSearchCriteria.from() == null
-                ? repo.search(available, city, category, keywordPattern, carSearchCriteria.minPrice(), carSearchCriteria.maxPrice(), pageable)
-                : repo.searchAvailableBetween(available, city, category, keywordPattern, carSearchCriteria.minPrice(), carSearchCriteria.maxPrice(),
+                ? repo.search(available, city, category, keywordPattern, carSearchCriteria.minPrice(),
+                        carSearchCriteria.maxPrice(), carSearchCriteria.agencyId(), pageable)
+                : repo.searchAvailableBetween(available, city, category, keywordPattern, carSearchCriteria.minPrice(),
+                        carSearchCriteria.maxPrice(), carSearchCriteria.agencyId(),
                         carSearchCriteria.from(), carSearchCriteria.to(), BookingStatus.BLOCKING, pageable);
-        return PageResponse.from(page.map(CarSearchResult::from));
+
+        Page<CarSearchResult> results = page.map(CarSearchResult::from);
+        Map<Long, CarRatingRow> ratings = ratingsFor(results.getContent().stream().map(CarSearchResult::id).toList());
+        return PageResponse.from(results.map(r -> withRating(r, ratings)));
+    }
+
+    /** One bulk aggregate query per page; empty input -> empty map. */
+    private Map<Long, CarRatingRow> ratingsFor(List<Long> carIds) {
+        if (carIds.isEmpty()) {
+            return Map.of();
+        }
+        return reviews.ratingsForCars(carIds).stream()
+                .collect(Collectors.toMap(CarRatingRow::getCarId, Function.identity()));
+    }
+
+    private static CarSearchResult withRating(CarSearchResult r, Map<Long, CarRatingRow> ratings) {
+        CarRatingRow row = ratings.get(r.id());
+        return row == null ? r : r.withRating(row.getAverage(), row.getCount());
+    }
+
+    /**
+     * Single car by id for the customer-facing car-detail page. Returns any
+     * status (availability for a window is checked separately); 404 if unknown.
+     */
+    @Transactional(readOnly = true)
+    public CarSearchResult getById(Long id) {
+        CarSearchResult result = repo.findWithAgencyById(id)
+                .map(CarSearchResult::from)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Car not found"));
+        return withRating(result, ratingsFor(List.of(id)));
     }
 
     /**
@@ -63,7 +102,14 @@ public class CarSearchService {
                 c.lat(), c.lng(), c.radiusKm() * 1000.0,
                 category, keywordPattern, c.minPrice(), c.maxPrice(),
                 c.from(), c.to(), blocking, pageable);
-        return PageResponse.from(page.map(NearbyCarResult::from));
+
+        Page<NearbyCarResult> results = page.map(NearbyCarResult::from);
+        Map<Long, CarRatingRow> ratings =
+                ratingsFor(results.getContent().stream().map(r -> r.car().id()).toList());
+        return PageResponse.from(results.map(r -> {
+            CarRatingRow row = ratings.get(r.car().id());
+            return row == null ? r : r.withRating(row.getAverage(), row.getCount());
+        }));
     }
 
     private static String lower(String s) {

@@ -73,7 +73,9 @@ public class CancellationService {
         BigDecimal rentalRefund = late
                 ? amount.multiply(lateRefundPercent).divide(HUNDRED, 2, RoundingMode.HALF_UP)
                 : amount;
-        return rentalRefund.add(deposit).setScale(2, RoundingMode.HALF_UP);
+        // The one-way relocation fee is refunded in full — the car never moved.
+        return rentalRefund.add(deposit).add(nz(booking.getOneWayFee()))
+                .setScale(2, RoundingMode.HALF_UP);
     }
 
     private BigDecimal nz(BigDecimal v) {

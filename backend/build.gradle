@@ -3,6 +3,9 @@ plugins {
 	id 'org.springframework.boot' version '4.1.0'
 	id 'io.spring.dependency-management' version '1.1.7'
 	id 'org.gradle.test-retry' version '1.6.0'
+	// Pinned Node toolchain for the frontend weave — downloads its own Node so
+	// `./gradlew bootRun` works no matter what (if any) node is on the PATH.
+	id 'com.github.node-gradle.node' version '7.1.0'
 }
 
 group = 'com.carrental'
@@ -69,3 +72,53 @@ tasks.named('test') {
 		failOnPassedAfterRetry = false
 	}
 }
+
+// ── Weave the web frontend into the backend (one process serves everything) ──
+// Builds the Vite app and drops its dist/ into src/main/resources/static, so
+// `./gradlew bootRun` (and the bootJar) serve the SPA on :8080 alongside the
+// API — no separate frontend process needed. See web/SpaController for the
+// client-route forwarding.
+//
+// Automatically skipped when it can't or shouldn't run:
+//  * ../frontend not present   (backend-only Docker image build context)
+//  * CI=true                   (the frontend has its own CI job)
+//  * -PskipFrontend            (explicit opt-out, e.g. API-only iteration)
+def frontendDir = file("$projectDir/../frontend")
+def weaveEnabled = frontendDir.exists() && !System.getenv('CI') && !project.hasProperty('skipFrontend')
+
+// Hermetic Node: downloaded into backend/.gradle/nodejs and used for every npm
+// task below — the system's node (or lack of one) is irrelevant. Vite 8 needs
+// Node >= 20.19, which is why relying on PATH broke on machines with Node 18.
+node {
+	download = true
+	version = '22.18.0'
+	workDir = file("$projectDir/.gradle/nodejs")
+	npmWorkDir = file("$projectDir/.gradle/npm")
+	nodeProjectDir = frontendDir
+}
+
+// The plugin's auto-created npmInstall keeps ../frontend/node_modules in sync
+// (fresh clones work with just `./gradlew bootRun`); guard it like the rest.
+tasks.named('npmInstall') {
+	onlyIf { weaveEnabled }
+}
+
+tasks.register('npmBuildFrontend', com.github.gradle.node.npm.task.NpmTask) {
+	onlyIf { weaveEnabled }
+	dependsOn 'npmInstall'
+	args = ['run', 'build']
+	// Cached: re-runs only when frontend sources actually change.
+	inputs.dir(file("$frontendDir/src"))
+	inputs.files(file("$frontendDir/package.json"), file("$frontendDir/package-lock.json"),
+			file("$frontendDir/vite.config.ts"), file("$frontendDir/index.html"))
+	outputs.dir(file("$frontendDir/dist"))
+}
+
+tasks.register('weaveFrontendIntoStatic', Sync) {
+	onlyIf { weaveEnabled }
+	dependsOn 'npmBuildFrontend'
+	from file("$frontendDir/dist")
+	into file("$projectDir/src/main/resources/static")   // gitignored (generated)
+}
+
+processResources.dependsOn 'weaveFrontendIntoStatic'

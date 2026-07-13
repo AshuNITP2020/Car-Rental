@@ -20,8 +20,15 @@ public record NearbyCarResult(double distanceKm, CarSearchResult car) {
                 row.getPricePerDay(),
                 row.getLatitude(),
                 row.getLongitude(),
-                row.getStatus());
+                row.getStatus(),
+                null,   // rating enrichment happens in the service (bulk query)
+                0);
         return new NearbyCarResult(round(row.getDistanceKm()), car);
+    }
+
+    /** Copy with the car's aggregate rating filled in. */
+    public NearbyCarResult withRating(Double averageRating, long reviewCount) {
+        return new NearbyCarResult(distanceKm, car.withRating(averageRating, reviewCount));
     }
 
     private static double round(double km) {

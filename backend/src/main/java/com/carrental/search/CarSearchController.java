@@ -3,6 +3,7 @@ package com.carrental.search;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
@@ -15,7 +16,6 @@ import java.time.OffsetDateTime;
  *   GET /api/cars/search?city=Mumbai&category=SUV&minPrice=1000&maxPrice=4000
  *       &from=2026-07-01T10:00:00Z&to=2026-07-04T10:00:00Z
  *       &sort=price,asc&page=0&size=20
- *
  * All filters are optional and combine with AND; results are always cars that
  * are AVAILABLE. Supplying from+to additionally drops cars already booked for
  * an overlapping window. Requires authentication (any logged-in user), matching
@@ -44,6 +44,7 @@ public class CarSearchController {
             @RequestParam(required = false) BigDecimal maxPrice,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to,
+            @RequestParam(required = false) Long agencyId,
             @RequestParam(defaultValue = "price,asc") String sort,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
@@ -57,7 +58,7 @@ public class CarSearchController {
         size = validatePaging(page, size);
 
         return search.search(new CarSearchCriteria(
-                city, category, keyword, minPrice, maxPrice, from, to, sort, page, size));
+                city, category, keyword, minPrice, maxPrice, from, to, agencyId, sort, page, size));
     }
 
     /**
@@ -99,6 +100,16 @@ public class CarSearchController {
 
         return search.searchNearby(new NearbyCarCriteria(
                 lat, lng, radiusKm, category, keyword, minPrice, maxPrice, from, to, page, size));
+    }
+
+    /**
+     * A single car's core fields (make/model/price/agency), for the customer
+     * car-detail page. Authenticated like search. 404 if the car doesn't exist.
+     *   GET /api/cars/42
+     */
+    @GetMapping("/api/cars/{id}")
+    public CarSearchResult getCar(@PathVariable Long id) {
+        return search.getById(id);
     }
 
     private static void validateWindow(OffsetDateTime from, OffsetDateTime to) {

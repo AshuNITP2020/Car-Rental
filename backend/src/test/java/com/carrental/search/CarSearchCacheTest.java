@@ -92,7 +92,7 @@ class CarSearchCacheTest {
 
     /** City-only filter (from == null) -> cacheable. */
     private CarSearchCriteria cacheable() {
-        return new CarSearchCriteria(city, null, null, null, null, null, null, "price,asc", 0, 20);
+        return new CarSearchCriteria(city, null, null, null, null, null, null, null, "price,asc", 0, 20);
     }
 
     @Test
@@ -133,7 +133,7 @@ class CarSearchCacheTest {
     void availabilitySearch_isNotCached() {
         // from/to present -> @Cacheable condition is false -> never cached.
         CarSearchCriteria c = new CarSearchCriteria(
-                city, null, null, null, null, base.plusDays(1), base.plusDays(2), "price,asc", 0, 20);
+                city, null, null, null, null, base.plusDays(1), base.plusDays(2), null, "price,asc", 0, 20);
 
         search.search(c);
 

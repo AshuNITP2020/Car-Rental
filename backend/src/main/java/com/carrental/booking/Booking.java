@@ -70,6 +70,23 @@ public class Booking {
     @Column(name = "expires_at")
     private OffsetDateTime expiresAt;
 
+    /** Round trip (car returns to pickup) or one-way drop-off (V15). */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "trip_type", nullable = false, length = 20)
+    private TripType tripType = TripType.ROUND_TRIP;
+
+    /** Where the car is picked up (the car's city at booking time). */
+    @Column(name = "pickup_city", length = 100)
+    private String pickupCity;
+
+    /** One-way only: the city the car is left in. */
+    @Column(name = "drop_city", length = 100)
+    private String dropCity;
+
+    /** One-way relocation fee charged to the customer (0 for round trips). */
+    @Column(name = "one_way_fee", nullable = false, precision = 12, scale = 2)
+    private BigDecimal oneWayFee = BigDecimal.ZERO;
+
     @Column(name = "idempotency_key", length = 80)
     private String idempotencyKey;
 
