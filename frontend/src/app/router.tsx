@@ -21,6 +21,15 @@ const TripDetailPage = lazy(() =>
   import('../features/bookings/trip-detail-page').then((m) => ({ default: m.TripDetailPage })),
 )
 const AccountPage = lazy(() => import('../features/account/account-page').then((m) => ({ default: m.AccountPage })))
+const AgencyProfilePage = lazy(() =>
+  import('../features/agencies/agency-profile-page').then((m) => ({ default: m.AgencyProfilePage })),
+)
+const TripSearchPage = lazy(() =>
+  import('../features/trip/trip-search-page').then((m) => ({ default: m.TripSearchPage })),
+)
+const AgencyResultsPage = lazy(() =>
+  import('../features/trip/agency-results-page').then((m) => ({ default: m.AgencyResultsPage })),
+)
 const AgencyOnboardPage = lazy(() =>
   import('../features/agency/onboard-page').then((m) => ({ default: m.AgencyOnboardPage })),
 )
@@ -66,9 +75,12 @@ export const router = createBrowserRouter([
         // below render their own fallback without extra wrappers here.
         element: <AppShell />,
         children: [
-          // ── Customer (Phase B) ──
-          { index: true, element: <BrowsePage /> },
+          // ── Customer ──
+          { index: true, element: <TripSearchPage /> }, // trip-first home (Uber-style)
+          { path: 'browse', element: <BrowsePage /> },  // secondary: scan all inventory
+          { path: 'agencies', element: <AgencyResultsPage /> },
           { path: 'cars/:id', element: <CarDetailPage /> },
+          { path: 'agencies/:id', element: <AgencyProfilePage /> },
           { path: 'trips', element: <TripsPage /> },
           { path: 'trips/:id', element: <TripDetailPage /> },
           { path: 'account', element: <AccountPage /> },

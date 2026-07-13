@@ -20,7 +20,8 @@ type Area = 'customer' | 'agency' | 'admin'
 
 const NAV: Record<Area, { to: string; label: string; end?: boolean }[]> = {
   customer: [
-    { to: '/', label: 'Browse', end: true },
+    { to: '/', label: 'Plan a trip', end: true },
+    { to: '/browse', label: 'Browse cars' },
     { to: '/trips', label: 'My trips' },
     { to: '/account', label: 'Account' },
   ],
@@ -144,8 +145,10 @@ export function AppShell() {
     <div className="min-h-screen">
       <header className="sticky top-0 z-40 border-b border-border bg-card/80 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4">
-          <Link to="/" className="flex items-center gap-2 font-semibold">
-            <Car className="h-5 w-5 text-primary" />
+          <Link to="/" className="flex items-center gap-2 font-bold tracking-tight">
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-sm">
+              <Car className="h-5 w-5" />
+            </span>
             <span className="hidden sm:inline">CarRental</span>
           </Link>
 

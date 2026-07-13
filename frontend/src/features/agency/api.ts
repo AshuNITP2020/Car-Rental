@@ -79,6 +79,17 @@ export const agencyApi = baseApi.injectEndpoints({
         { type: 'CarImages', id: carId },
       ],
     }),
+    /** Make an image the gallery cover; returns the reordered gallery. */
+    setCoverImage: build.mutation<CarImageResponse[], { carId: number; imageId: number }>({
+      query: ({ carId, imageId }) => ({
+        url: `/agency/cars/${carId}/images/${imageId}/cover`,
+        method: 'PUT',
+      }),
+      invalidatesTags: (_r, _e, { carId }) => [
+        { type: 'AgencyCarImages', id: carId },
+        { type: 'CarImages', id: carId },
+      ],
+    }),
     deleteCarImage: build.mutation<void, { carId: number; imageId: number }>({
       query: ({ carId, imageId }) => ({
         url: `/agency/cars/${carId}/images/${imageId}`,
@@ -152,6 +163,7 @@ export const {
   useDeleteCarMutation,
   useGetAgencyCarImagesQuery,
   useUploadCarImageMutation,
+  useSetCoverImageMutation,
   useDeleteCarImageMutation,
   useGetAgencyCarDocumentsQuery,
   useUploadCarDocumentMutation,

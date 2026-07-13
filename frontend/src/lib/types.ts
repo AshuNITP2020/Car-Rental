@@ -29,6 +29,7 @@ export type DocumentType =
   | 'INSURANCE'
   | 'REGISTRATION'
 export type DocumentOwnerType = 'USER' | 'CAR'
+export type TripType = 'ROUND_TRIP' | 'ONE_WAY'
 
 // ── Errors & envelopes ───────────────────────────────────────────────────────
 export interface ApiFieldError {
@@ -103,6 +104,13 @@ export interface CarSearchResult {
   latitude: number | null
   longitude: number | null
   status: CarStatus
+  /** Aggregate review rating — null / 0 when the car has no reviews yet. */
+  averageRating: number | null
+  reviewCount: number
+}
+export interface AgencyRatingResponse {
+  averageRating: number | null
+  reviewCount: number
 }
 export interface NearbyCarResult {
   distanceKm: number
@@ -128,9 +136,32 @@ export interface PriceBreakdown {
   rental: number
   gst: number
   deposit: number
+  /** Distance-based relocation fee for one-way drop-offs (0 for round trips). */
+  oneWayFee: number
   platformFee: number
   total: number
   currency: string
+}
+
+/** An operating city (has at least one agency); centroid for distance estimates. */
+export interface CityInfo {
+  city: string
+  agencyCount: number
+  latitude: number | null
+  longitude: number | null
+}
+
+/** One agency in the trip-first search — the marketplace's "ride option". */
+export interface AgencySearchResult {
+  agencyId: number
+  name: string
+  city: string
+  latitude: number | null
+  longitude: number | null
+  availableCars: number
+  fromPricePerDay: number
+  averageRating: number | null
+  reviewCount: number
 }
 
 // ── Bookings & payments ────────────────────────────────────────────────────────
@@ -144,12 +175,20 @@ export interface BookingResponse {
   status: BookingStatus
   amount: number
   deposit: number
+  tripType: TripType
+  pickupCity: string | null
+  dropCity: string | null
+  oneWayFee: number
   expiresAt: string | null
 }
 export interface CreateBookingRequest {
   carId: number
   from: string
   to: string
+  /** Defaults to ROUND_TRIP server-side when omitted. */
+  tripType?: TripType
+  /** Required for ONE_WAY; must differ from the pickup city. */
+  dropCity?: string
 }
 export interface CancelResponse {
   bookingId: number
@@ -165,6 +204,13 @@ export interface PaymentOrderResponse {
   amount: number
   currency: string
   status: PaymentStatus
+  /** Provider's PUBLIC key id for the browser checkout widget (null for mock). */
+  keyId: string | null
+}
+export interface VerifyCheckoutRequest {
+  razorpayOrderId: string
+  razorpayPaymentId: string
+  razorpaySignature: string
 }
 
 // ── Reviews ────────────────────────────────────────────────────────────────────

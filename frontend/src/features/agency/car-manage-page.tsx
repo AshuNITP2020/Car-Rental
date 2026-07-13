@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { ArrowLeft, Eye, FileText, ImagePlus, Pencil, Trash2, Upload } from 'lucide-react'
+import { ArrowLeft, Eye, FileText, ImagePlus, Pencil, Star, Trash2, Upload } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 import { StatusBadge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
@@ -22,6 +22,7 @@ import {
   useGetAgencyCarDocumentsQuery,
   useGetAgencyCarImagesQuery,
   useGetAgencyCarQuery,
+  useSetCoverImageMutation,
   useUploadCarDocumentMutation,
   useUploadCarImageMutation,
 } from './api'
@@ -73,6 +74,7 @@ function ImagesCard({ carId }: { carId: number }) {
   const { data: images, isLoading } = useGetAgencyCarImagesQuery(carId)
   const [upload, uploadState] = useUploadCarImageMutation()
   const [remove, removeState] = useDeleteCarImageMutation()
+  const [setCover] = useSetCoverImageMutation()
   const toast = useToast()
   const fileRef = useRef<HTMLInputElement>(null)
   const [pendingDelete, setPendingDelete] = useState<CarImageResponse | null>(null)
@@ -111,9 +113,31 @@ function ImagesCard({ carId }: { carId: number }) {
           <p className="text-sm text-muted-foreground">No photos yet.</p>
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-            {images.map((img) => (
+            {images.map((img, i) => (
               <div key={img.id} className="group relative aspect-video overflow-hidden rounded-lg border border-border bg-muted">
                 <img src={img.url} alt="" className="h-full w-full object-cover" />
+                {i === 0 ? (
+                  <span className="absolute left-1.5 top-1.5 rounded-md bg-black/60 px-2 py-0.5 text-xs font-medium text-white">
+                    Cover
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    title="Set as cover"
+                    aria-label="Set as cover"
+                    onClick={async () => {
+                      try {
+                        await setCover({ carId, imageId: img.id }).unwrap()
+                        toast.success('Cover photo updated')
+                      } catch (err) {
+                        toast.error(errorMessage(err), 'Could not set cover')
+                      }
+                    }}
+                    className="absolute left-1.5 top-1.5 rounded-md bg-black/60 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                  >
+                    <Star className="h-4 w-4" />
+                  </button>
+                )}
                 <button
                   type="button"
                   aria-label="Delete photo"

@@ -8,6 +8,7 @@ import type {
   CreateReviewRequest,
   PaymentOrderResponse,
   ReviewResponse,
+  VerifyCheckoutRequest,
 } from '../../lib/types'
 
 export const bookingsApi = baseApi.injectEndpoints({
@@ -39,6 +40,19 @@ export const bookingsApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: (_r, _e, id) => ['Bookings', { type: 'Bookings', id }],
     }),
+    /** Razorpay checkout handshake — server verifies the signature and
+     *  confirms the booking immediately (no webhook round-trip). */
+    verifyCheckout: build.mutation<
+      PaymentOrderResponse,
+      { bookingId: number; body: VerifyCheckoutRequest }
+    >({
+      query: ({ bookingId, body }) => ({
+        url: `/bookings/${bookingId}/payment/verify`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: (_r, _e, { bookingId }) => ['Bookings', { type: 'Bookings', id: bookingId }],
+    }),
     /** 404 (error state) means "not reviewed yet". */
     getBookingReview: build.query<ReviewResponse, number>({
       query: (bookingId) => ({ url: `/bookings/${bookingId}/review` }),
@@ -65,6 +79,7 @@ export const {
   useCancelBookingMutation,
   useCreatePaymentOrderMutation,
   useMockCaptureMutation,
+  useVerifyCheckoutMutation,
   useGetBookingReviewQuery,
   useSubmitReviewMutation,
 } = bookingsApi

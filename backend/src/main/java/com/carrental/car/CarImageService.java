@@ -120,6 +120,30 @@ public class CarImageService {
         }
     }
 
+    /**
+     * Makes an image the gallery cover: it moves to position 0 and the rest are
+     * renumbered in their current order. The cover is what listings show first.
+     */
+    @Transactional
+    public List<CarImageResponse> setCover(Long agencyId, Long carId, Long imageId) {
+        requireOwnedCar(agencyId, carId);
+        List<CarImage> gallery = images.findByCar_IdOrderByPositionAscIdAsc(carId);
+        CarImage cover = gallery.stream()
+                .filter(img -> img.getId().equals(imageId))
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Image not found"));
+
+        cover.setPosition(0);
+        int next = 1;
+        for (CarImage img : gallery) {
+            if (!img.getId().equals(imageId)) {
+                img.setPosition(next++);
+            }
+        }
+        images.saveAll(gallery);
+        return gallery(carId);
+    }
+
     private List<CarImageResponse> gallery(Long carId) {
         return images.findByCar_IdOrderByPositionAscIdAsc(carId).stream()
                 .map(image -> CarImageResponse.from(image, storage.url(image.getObjectKey())))

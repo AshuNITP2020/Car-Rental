@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSelector, createSlice, type PayloadAction } from '@reduxjs/toolkit'
-import { api } from '../../lib/api'
+import { api, ApiRequestError } from '../../lib/api'
+import { serializeApiError, type SerializedApiError } from '../../lib/errors'
 import { decodeJwt } from '../../lib/jwt'
 import { tokenStore } from '../../lib/token-store'
 import type {
@@ -8,6 +9,10 @@ import type {
   RegisterRequest,
   UserResponse,
 } from '../../lib/types'
+
+/** Thunk config: rejections carry a typed, serializable API error so callers
+ *  can branch on status (e.g. 404 on login = unknown email -> suggest sign-up). */
+type ApiThunkConfig = { rejectValue: SerializedApiError }
 
 export type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated'
 
@@ -28,17 +33,34 @@ const initialState: AuthState = {
 //    tokenStore, whose subscription dispatches `tokensChanged` back into the
 //    store — see store.ts) ────────────────────────────────────────────────────
 
-export const login = createAsyncThunk('auth/login', async (body: LoginRequest) => {
-  const res = await api.post<AuthResponse>('/auth/login', body, { auth: false })
-  tokenStore.set({ accessToken: res.accessToken, refreshToken: res.refreshToken })
-  return res.user
-})
+export const login = createAsyncThunk<UserResponse, LoginRequest, ApiThunkConfig>(
+  'auth/login',
+  async (body, { rejectWithValue }) => {
+    try {
+      const res = await api.post<AuthResponse>('/auth/login', body, { auth: false })
+      tokenStore.set({ accessToken: res.accessToken, refreshToken: res.refreshToken })
+      return res.user
+    } catch (e) {
+      if (e instanceof ApiRequestError) return rejectWithValue(serializeApiError(e))
+      throw e
+    }
+  },
+)
 
-export const register = createAsyncThunk('auth/register', async (body: RegisterRequest) => {
-  const res = await api.post<AuthResponse>('/auth/register', body, { auth: false })
-  tokenStore.set({ accessToken: res.accessToken, refreshToken: res.refreshToken })
-  return res.user
-})
+/** Creates the account WITHOUT signing in — the user signs in explicitly
+ *  afterwards (tokens from the response are deliberately discarded). */
+export const register = createAsyncThunk<UserResponse, RegisterRequest, ApiThunkConfig>(
+  'auth/register',
+  async (body, { rejectWithValue }) => {
+    try {
+      const res = await api.post<AuthResponse>('/auth/register', body, { auth: false })
+      return res.user
+    } catch (e) {
+      if (e instanceof ApiRequestError) return rejectWithValue(serializeApiError(e))
+      throw e
+    }
+  },
+)
 
 /** Resolve the user from stored tokens on app start (or to refresh /me). */
 export const bootstrapSession = createAsyncThunk('auth/bootstrap', async () => {
@@ -76,9 +98,8 @@ const authSlice = createSlice({
       .addCase(login.fulfilled, (state, action) => {
         state.user = action.payload
       })
-      .addCase(register.fulfilled, (state, action) => {
-        state.user = action.payload
-      })
+      // register.fulfilled intentionally does NOT set the user: account
+      // creation no longer signs the user in (see register thunk).
       .addCase(bootstrapSession.fulfilled, (state, action) => {
         state.user = action.payload
       })

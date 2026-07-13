@@ -47,6 +47,8 @@ public class CarService {
         car.setLatitude(req.latitude());
         car.setLongitude(req.longitude());
         car.setStatus(CarStatus.AVAILABLE);
+        // New cars start where their agency is (moves on completed one-way trips).
+        car.setCurrentCity(car.getAgency().getCity());
         return CarResponse.from(saveUnique(car));
     }
 

@@ -2,14 +2,24 @@ import { useState } from 'react'
 import { Car as CarIcon } from 'lucide-react'
 import type { CarImageResponse } from '../../lib/types'
 import { cn } from '../../lib/utils'
+import { carPlaceholderStyle } from './placeholder'
 
-export function CarGallery({ images }: { images: CarImageResponse[] | undefined }) {
+export function CarGallery({
+  images,
+  carId,
+}: {
+  images: CarImageResponse[] | undefined
+  carId: number
+}) {
   const [active, setActive] = useState(0)
 
   if (!images || images.length === 0) {
     return (
-      <div className="flex aspect-video items-center justify-center rounded-xl border border-border bg-muted">
-        <CarIcon className="h-16 w-16 text-muted-foreground/40" />
+      <div
+        className="flex aspect-video items-center justify-center rounded-2xl"
+        style={carPlaceholderStyle(carId)}
+      >
+        <CarIcon className="h-20 w-20 text-white/40" />
       </div>
     )
   }

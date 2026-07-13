@@ -31,11 +31,16 @@ export function rentalDays(from: string, to: string): number {
   return Math.max(1, differenceInCalendarDays(b, a))
 }
 
+/** Set a calendar day to a specific hour (local) and return an ISO instant. */
+export function dayAtHour(day: Date, hour: number): string {
+  const d = new Date(day)
+  d.setHours(hour, 0, 0, 0)
+  return d.toISOString()
+}
+
 /** Set a calendar day to the default rental hour (local) and return an ISO instant. */
 export function dayAtDefaultHour(day: Date): string {
-  const d = new Date(day)
-  d.setHours(DEFAULT_RENTAL_HOUR, 0, 0, 0)
-  return d.toISOString()
+  return dayAtHour(day, DEFAULT_RENTAL_HOUR)
 }
 
 /** True if `to` is strictly after `from`. */

@@ -44,6 +44,7 @@ public class CarSearchController {
             @RequestParam(required = false) BigDecimal maxPrice,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to,
+            @RequestParam(required = false) Long agencyId,
             @RequestParam(defaultValue = "price,asc") String sort,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
@@ -57,7 +58,7 @@ public class CarSearchController {
         size = validatePaging(page, size);
 
         return search.search(new CarSearchCriteria(
-                city, category, keyword, minPrice, maxPrice, from, to, sort, page, size));
+                city, category, keyword, minPrice, maxPrice, from, to, agencyId, sort, page, size));
     }
 
     /**

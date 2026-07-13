@@ -8,7 +8,7 @@
    to Tailwind utilities (bg-background, text-foreground, border-border, …)
    by *reference*, so the .dark overrides take effect at runtime. */
 :root {
-  --background: #f8fafc; /* slate-50  */
+  --background: #f6f7fb; /* soft cool white */
   --foreground: #0f172a; /* slate-900 */
   --card: #ffffff;
   --card-foreground: #0f172a;
@@ -61,8 +61,8 @@
   --color-destructive-foreground: var(--destructive-foreground);
 
   --radius: 0.625rem;
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, sans-serif;
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 @layer base {

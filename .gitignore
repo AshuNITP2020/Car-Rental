@@ -43,3 +43,6 @@ pgdata/
 
 data/
 logs/
+
+# Generated: the Vite build woven into the backend by `weaveFrontendIntoStatic`
+backend/src/main/resources/static/

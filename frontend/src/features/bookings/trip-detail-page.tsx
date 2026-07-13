@@ -14,12 +14,17 @@ import { formatMoney } from '../../lib/utils'
 import type { BookingResponse } from '../../lib/types'
 import { StarRating } from '../../components/ui/rating'
 import { useGetCarQuery } from '../cars/api'
+import { useAppDispatch } from '../../app/hooks'
+import { baseApi } from '../../app/base-api'
+import { useAuth } from '../auth/use-auth'
+import { openRazorpayCheckout } from '../../lib/razorpay'
 import {
   useBooking,
   useCancelBookingMutation,
   useCreatePaymentOrderMutation,
   useGetBookingReviewQuery,
   useMockCaptureMutation,
+  useVerifyCheckoutMutation,
 } from './api'
 import { HoldCountdown } from './hold-countdown'
 import { ReviewDialog } from './review-dialog'
@@ -39,9 +44,12 @@ export function TripDetailPage() {
 
 function TripDetailContent({ booking }: { booking: BookingResponse }) {
   const toast = useToast()
+  const dispatch = useAppDispatch()
+  const { user } = useAuth()
   const { data: car } = useGetCarQuery(booking.carId)
   const [createOrder, orderState] = useCreatePaymentOrderMutation()
   const [capture, captureState] = useMockCaptureMutation()
+  const [verifyCheckout, verifyState] = useVerifyCheckoutMutation()
   const [cancel, cancelState] = useCancelBookingMutation()
   // 404 = not reviewed yet; only asked for once the trip is COMPLETED.
   const { data: review } = useGetBookingReviewQuery(booking.id, {
@@ -50,18 +58,46 @@ function TripDetailContent({ booking }: { booking: BookingResponse }) {
   const [confirmCancel, setConfirmCancel] = useState(false)
   const [reviewOpen, setReviewOpen] = useState(false)
 
-  const paying = orderState.isLoading || captureState.isLoading
+  const paying = orderState.isLoading || captureState.isLoading || verifyState.isLoading
   const canCancel = booking.status === 'PENDING' || booking.status === 'CONFIRMED'
 
   async function pay() {
     try {
       const order = await createOrder(booking.id).unwrap()
+
       if (order.provider.toUpperCase() === 'MOCK') {
+        // Local mock provider: capture instantly, no checkout UI.
         await capture(booking.id).unwrap()
         toast.success('Payment successful — your booking is confirmed!')
-      } else {
-        toast.info('Online checkout for this provider isn’t wired into this build yet.')
+        return
       }
+
+      if (order.keyId) {
+        // Razorpay: open the hosted checkout, then verify the returned
+        // signature server-side to confirm the booking immediately.
+        const result = await openRazorpayCheckout({
+          keyId: order.keyId,
+          orderId: order.orderId,
+          description: `Booking #${booking.id}`,
+          prefillName: user?.name,
+          prefillEmail: user?.email,
+        })
+        if (!result) {
+          // The modal can be closed AFTER paying (or the handshake can be lost
+          // to a network blip) — re-fetch so a webhook-confirmed payment still
+          // shows up, and reassure the user either way.
+          dispatch(baseApi.util.invalidateTags([{ type: 'Bookings', id: booking.id }]))
+          toast.info(
+            'Checkout closed. If you completed the payment, this booking will confirm automatically in a moment.',
+          )
+          return
+        }
+        await verifyCheckout({ bookingId: booking.id, body: result }).unwrap()
+        toast.success('Payment successful — your booking is confirmed!')
+        return
+      }
+
+      toast.error('The payment provider is not fully configured on the server.')
     } catch (e) {
       toast.error(errorMessage(e), 'Payment failed')
     }
@@ -103,10 +139,18 @@ function TripDetailContent({ booking }: { booking: BookingResponse }) {
           <CardTitle>Trip details</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
+          {booking.tripType === 'ONE_WAY' && booking.pickupCity && booking.dropCity ? (
+            <Row label="Route" value={`${booking.pickupCity} → ${booking.dropCity} (one-way)`} />
+          ) : (
+            booking.pickupCity && <Row label="Pickup city" value={booking.pickupCity} />
+          )}
           <Row label="Pickup" value={formatDateTime(booking.from)} />
           <Row label="Return" value={formatDateTime(booking.to)} />
           <Row label="Rental" value={formatMoney(booking.amount)} />
           <Row label="Refundable deposit" value={formatMoney(booking.deposit)} />
+          {booking.oneWayFee > 0 && (
+            <Row label="One-way drop-off fee" value={formatMoney(booking.oneWayFee)} />
+          )}
         </CardContent>
       </Card>
 
@@ -121,7 +165,7 @@ function TripDetailContent({ booking }: { booking: BookingResponse }) {
               <CreditCard className="h-4 w-4" /> Pay {formatMoney(booking.amount + booking.deposit)}
             </Button>
             <p className="text-center text-xs text-muted-foreground">
-              Mock payment — confirms your booking instantly.
+              Secure checkout — your booking confirms as soon as payment succeeds.
             </p>
           </CardContent>
         </Card>

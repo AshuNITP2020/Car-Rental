@@ -36,14 +36,17 @@ import java.util.Optional;
  */
 public interface CarSearchRepository extends Repository<Car, Long> {
 
-    /** Shared filter block — everything except the availability window. */
+    /** Shared filter block — everything except the availability window. The city
+     *  match uses where the car actually IS (current_city, e.g. after a one-way
+     *  trip), falling back to its agency's city. */
     String FILTERS = """
             c.status = :available
-              and (:city is null or lower(c.agency.city) = :city)
+              and (:city is null or lower(coalesce(c.currentCity, c.agency.city)) = :city)
               and (:category is null or lower(c.category) = :category)
               and (:keywordPattern is null or lower(c.make) like :keywordPattern or lower(c.model) like :keywordPattern)
               and (:minPrice is null or c.pricePerDay >= :minPrice)
               and (:maxPrice is null or c.pricePerDay <= :maxPrice)
+              and (:agencyId is null or c.agency.id = :agencyId)
             """;
 
     @EntityGraph(attributePaths = "agency")
@@ -55,6 +58,7 @@ public interface CarSearchRepository extends Repository<Car, Long> {
             @Param("keywordPattern") String keywordPattern,
             @Param("minPrice") BigDecimal minPrice,
             @Param("maxPrice") BigDecimal maxPrice,
+            @Param("agencyId") Long agencyId,
             Pageable pageable);
 
     @EntityGraph(attributePaths = "agency")
@@ -68,6 +72,7 @@ public interface CarSearchRepository extends Repository<Car, Long> {
             @Param("keywordPattern") String keywordPattern,
             @Param("minPrice") BigDecimal minPrice,
             @Param("maxPrice") BigDecimal maxPrice,
+            @Param("agencyId") Long agencyId,
             @Param("from") OffsetDateTime from,
             @Param("to") OffsetDateTime to,
             @Param("blocking") Collection<BookingStatus> blocking,

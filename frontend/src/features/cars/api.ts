@@ -18,6 +18,8 @@ export type SearchParams = {
   maxPrice?: string
   from?: string
   to?: string
+  /** Restrict to one agency's fleet (its public profile page). */
+  agencyId?: number
   sort?: string
   page?: number
   size?: number
@@ -38,6 +40,7 @@ export type NearbyParams = {
 }
 
 export type DateWindowArg = { id: number; from: string; to: string }
+export type QuoteArg = DateWindowArg & { dropCity?: string }
 
 export const carsApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
@@ -61,8 +64,11 @@ export const carsApi = baseApi.injectEndpoints({
       query: (carId) => ({ url: `/cars/${carId}/reviews` }),
       providesTags: (_r, _e, carId) => [{ type: 'CarReviews', id: carId }],
     }),
-    getCarQuote: build.query<PriceBreakdown, DateWindowArg>({
-      query: ({ id, from, to }) => ({ url: `/cars/${id}/quote`, params: { from, to } }),
+    getCarQuote: build.query<PriceBreakdown, QuoteArg>({
+      query: ({ id, from, to, dropCity }) => ({
+        url: `/cars/${id}/quote`,
+        params: { from, to, dropCity },
+      }),
     }),
     getCarAvailability: build.query<AvailabilityResponse, DateWindowArg>({
       query: ({ id, from, to }) => ({ url: `/cars/${id}/availability`, params: { from, to } }),

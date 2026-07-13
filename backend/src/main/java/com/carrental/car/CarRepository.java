@@ -1,6 +1,7 @@
 package com.carrental.car;
 
 import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -12,6 +13,11 @@ public interface CarRepository extends JpaRepository<Car, Long> {
 
     /** Tenant-scoped: only cars owned by the given agency. */
     List<Car> findByAgency_Id(Long agencyId);
+
+    /** Car with its agency eagerly loaded (for use outside a transaction). */
+    @EntityGraph(attributePaths = "agency")
+    @Query("select c from Car c where c.id = :id")
+    Optional<Car> findByIdWithAgency(Long id);
 
     /**
      * Tenant-scoped lookup by id: returns the car only if it belongs to the

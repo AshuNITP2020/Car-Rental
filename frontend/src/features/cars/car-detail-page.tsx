@@ -1,5 +1,5 @@
 import { ArrowLeft, Building2, Car as CarIcon, MapPin } from 'lucide-react'
-import { Link, useLocation, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom'
 import { StatusBadge } from '../../components/ui/badge'
 import { EmptyState } from '../../components/ui/empty-state'
 import { LoadingState } from '../../components/ui/spinner'
@@ -13,6 +13,14 @@ export function CarDetailPage() {
   const { id } = useParams()
   const carId = Number(id)
   const location = useLocation()
+  // Trip context forwarded from the agency flow (dates, destination, one-way).
+  const [searchParams] = useSearchParams()
+  const trip = {
+    from: searchParams.get('from') ?? undefined,
+    to: searchParams.get('to') ?? undefined,
+    dest: searchParams.get('dest') ?? undefined,
+    oneWay: searchParams.get('oneWay') === '1',
+  }
   // Car passed via router state renders instantly while the fetch refreshes it.
   const initial = (location.state as { car?: CarSearchResult } | null)?.car
 
@@ -46,7 +54,7 @@ export function CarDetailPage() {
 
       <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
-          <CarGallery images={images} />
+          <CarGallery images={images} carId={carId} />
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-semibold tracking-tight">
@@ -56,9 +64,12 @@ export function CarDetailPage() {
             </div>
             <p className="text-muted-foreground">{car.category}</p>
             <div className="mt-3 flex flex-wrap gap-4 text-sm text-muted-foreground">
-              <span className="inline-flex items-center gap-1">
+              <Link
+                to={`/agencies/${car.agencyId}`}
+                className="inline-flex items-center gap-1 hover:text-primary hover:underline"
+              >
                 <Building2 className="h-4 w-4" /> {car.agencyName}
-              </span>
+              </Link>
               {car.city && (
                 <span className="inline-flex items-center gap-1">
                   <MapPin className="h-4 w-4" /> {car.city}
@@ -73,7 +84,7 @@ export function CarDetailPage() {
         </div>
 
         <div>
-          <BookingWidget carId={carId} pricePerDay={car.pricePerDay} />
+          <BookingWidget carId={carId} pricePerDay={car.pricePerDay} trip={trip} />
         </div>
       </div>
     </div>
