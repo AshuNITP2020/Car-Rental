@@ -9,7 +9,7 @@
  *
  * It is self-bootstrapping: it registers an agency owner, creates an agency + a
  * fleet of cars, registers some customers, then loops each customer through
- * browse -> (maybe) nearby -> book -> (sometimes) cancel. Booking conflicts (409)
+ * browse -> (maybe) agency search -> book -> (sometimes) cancel. Booking conflicts (409)
  * are expected and counted — that's the double-booking guarantee working under
  * concurrent demand.
  *
@@ -38,7 +38,7 @@ const CITIES = [
 ];
 const CATEGORIES = ['HATCHBACK', 'SEDAN', 'SUV', 'MPV', 'LUXURY'];
 
-const stats = { journeys: 0, search: 0, nearby: 0, booked: 0, conflicts: 0, cancelled: 0, rateLimited: 0, errors: 0 };
+const stats = { journeys: 0, search: 0, agencies: 0, booked: 0, conflicts: 0, cancelled: 0, rateLimited: 0, errors: 0 };
 let running = true;
 
 function intEnv(k, d) { const v = process.env[k]; return v != null ? parseInt(v, 10) : d; }
@@ -116,16 +116,15 @@ async function setup() {
 async function journey(ctx) {
   const token = pick(ctx.customers);
 
-  // Browse the catalogue.
-  const cat = Math.random() < 0.6 ? pick(CATEGORIES) : null;
-  await req('GET', `/api/cars/search?size=10${cat ? `&category=${cat}` : ''}`, { token });
+  // Browse available inventory (trip-first product: no filter facets).
+  await req('GET', '/api/cars/search?size=10', { token });
   stats.search++;
 
-  // Sometimes "cars near me".
+  // Sometimes the trip-first agency search ("which agencies operate here?").
   if (Math.random() < 0.4) {
     const c = pick(CITIES);
-    await req('GET', `/api/cars/search/nearby?lat=${c.lat}&lng=${c.lng}&radiusKm=50`, { token });
-    stats.nearby++;
+    await req('GET', `/api/agencies/search?city=${encodeURIComponent(c.name)}`, { token });
+    stats.agencies++;
   }
 
   // Book a random car for a random future window.
@@ -149,7 +148,7 @@ async function journey(ctx) {
 }
 
 function printStats(prefix) {
-  console.log(`${prefix}journeys=${stats.journeys} search=${stats.search} nearby=${stats.nearby} ` +
+  console.log(`${prefix}journeys=${stats.journeys} search=${stats.search} agencies=${stats.agencies} ` +
     `booked=${stats.booked} conflicts=${stats.conflicts} cancelled=${stats.cancelled} ` +
     `rateLimited=${stats.rateLimited} errors=${stats.errors}`);
 }

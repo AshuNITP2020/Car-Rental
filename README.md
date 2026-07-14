@@ -12,7 +12,9 @@ deliberately "solved" so all energy goes into engineering.
 A two-sided marketplace connecting **customers** who want to rent a car with
 **agencies** that own fleets, refereed by a **platform**:
 
-- **Customers** — search &amp; filter cars, find cars **near me** (geo), see live
+- **Customers** — plan a trip **Uber-style** (pickup + destination city, dates,
+  optional **one-way drop-off** with a distance-based fee), choose among
+  **agencies** (rating, fleet, from-price), see live
   availability, **book with a guarantee of no double-booking**, pay (rental +
   GST + refundable deposit), cancel with timing-based refunds, and review a trip
   once it's completed.

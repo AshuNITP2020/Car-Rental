@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.List;
 
@@ -86,6 +88,14 @@ public class ApiExceptionHandler {
     public ResponseEntity<ApiError> handleAccessDenied(AccessDeniedException ex,
                                                       HttpServletRequest request) {
         return build(HttpStatus.FORBIDDEN, "Access denied", request, List.of());
+    }
+
+    /** Unknown URL (no controller, no static resource): a plain 404, not a 500.
+     *  ({@code NoResourceFoundException} is a ServletException, so without this
+     *  it would fall through to the catch-all below.) */
+    @ExceptionHandler({NoResourceFoundException.class, NoHandlerFoundException.class})
+    public ResponseEntity<ApiError> handleNotFound(Exception ex, HttpServletRequest request) {
+        return build(HttpStatus.NOT_FOUND, "Not found", request, List.of());
     }
 
     /** Last resort: log it (with the stack trace) but never leak it to the client. */

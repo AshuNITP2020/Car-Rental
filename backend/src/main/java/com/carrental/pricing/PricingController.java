@@ -14,30 +14,39 @@ import java.time.OffsetDateTime;
 
 /**
  * Customer-facing price quote for a car over a window — what they'll be charged
- * before they commit to booking.
- *   GET /api/cars/{id}/quote?from=…&to=…
+ * before they commit to booking. Supplying {@code dropCity} quotes a one-way
+ * trip (adds the distance-based relocation fee).
+ *   GET /api/cars/{id}/quote?from=…&to=…[&dropCity=Pune]
  */
 @RestController
 public class PricingController {
 
     private final CarRepository cars;
     private final PricingService pricing;
+    private final OneWayFeeService oneWayFees;
 
-    public PricingController(CarRepository cars, PricingService pricing) {
+    public PricingController(CarRepository cars, PricingService pricing, OneWayFeeService oneWayFees) {
         this.cars = cars;
         this.pricing = pricing;
+        this.oneWayFees = oneWayFees;
     }
 
     @GetMapping("/api/cars/{id}/quote")
     public PriceBreakdown quote(
             @PathVariable Long id,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to) {
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to,
+            @RequestParam(required = false) String dropCity) {
         if (!from.isBefore(to)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "'from' must be before 'to'");
         }
-        Car car = cars.findById(id)
+        Car car = cars.findByIdWithAgency(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Car not found"));
-        return pricing.quote(car.getPricePerDay(), from, to);
+
+        if (dropCity == null || dropCity.isBlank()) {
+            return pricing.quote(car.getPricePerDay(), from, to);
+        }
+        String origin = car.getCurrentCity() != null ? car.getCurrentCity() : car.getAgency().getCity();
+        return pricing.quote(car.getPricePerDay(), from, to, oneWayFees.feeFor(origin, dropCity));
     }
 }

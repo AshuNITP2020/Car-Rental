@@ -45,14 +45,11 @@ class CarSearchCacheTest {
     @Autowired AgencyRepository agencies;
     @Autowired CarRepository cars;
 
-    private String city;
     private Agency agency;
     private final OffsetDateTime base = OffsetDateTime.parse("2026-09-01T10:00:00Z");
 
     @BeforeEach
     void seed() {
-        city = "CacheCity-" + UUID.randomUUID();
-
         User owner = new User();
         owner.setName("Owner");
         owner.setEmail("cache-owner-" + UUID.randomUUID() + "@test.local");
@@ -62,7 +59,7 @@ class CarSearchCacheTest {
         agency = new Agency();
         agency.setName("Cache Agency");
         agency.setOwner(owner);
-        agency.setCity(city);
+        agency.setCity("CacheCity-" + UUID.randomUUID());
         agency.setStatus(AgencyStatus.ACTIVE);
         agencies.save(agency);
 
@@ -90,9 +87,10 @@ class CarSearchCacheTest {
         return cacheManager.getCache(CacheConfig.CAR_SEARCH_CACHE);
     }
 
-    /** City-only filter (from == null) -> cacheable. */
+    /** Agency-only filter (from == null) -> cacheable. The test's own agency id
+     *  makes the cache key unique per run (Redis writes aren't rolled back). */
     private CarSearchCriteria cacheable() {
-        return new CarSearchCriteria(city, null, null, null, null, null, null, "price,asc", 0, 20);
+        return new CarSearchCriteria(agency.getId(), null, null, 0, 20);
     }
 
     @Test
@@ -133,7 +131,7 @@ class CarSearchCacheTest {
     void availabilitySearch_isNotCached() {
         // from/to present -> @Cacheable condition is false -> never cached.
         CarSearchCriteria c = new CarSearchCriteria(
-                city, null, null, null, null, base.plusDays(1), base.plusDays(2), "price,asc", 0, 20);
+                agency.getId(), base.plusDays(1), base.plusDays(2), 0, 20);
 
         search.search(c);
 

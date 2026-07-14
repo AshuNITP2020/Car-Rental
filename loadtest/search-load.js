@@ -42,7 +42,6 @@ export const options = {
 
 const CITIES = ['Mumbai', 'Delhi', 'Bengaluru', 'Pune', 'Hyderabad',
   'Chennai', 'Kolkata', 'Ahmedabad', 'Jaipur', 'Gurugram'];
-const CATEGORIES = ['HATCHBACK', 'SEDAN', 'SUV', 'MPV', 'LUXURY'];
 
 // Runs once: get an access token that all VUs share (search is a read, so one
 // token is fine — as long as the app's per-user rate limiter is disabled).
@@ -62,12 +61,12 @@ export default function (data) {
 
   let url;
   if (Math.random() < 0.7) {
-    // The common, cache-friendly query.
-    url = `${BASE}/api/cars/search?city=Mumbai&category=SUV&sort=price,asc&page=0&size=20`;
+    // The common, cache-friendly query (no window -> served from Redis).
+    url = `${BASE}/api/cars/search?page=0&size=20`;
   } else {
+    // The trip-first hot path: agencies operating at a pickup city.
     const city = CITIES[Math.floor(Math.random() * CITIES.length)];
-    const cat = CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)];
-    url = `${BASE}/api/cars/search?city=${city}&category=${cat}&size=20`;
+    url = `${BASE}/api/agencies/search?city=${city}`;
   }
 
   const res = http.get(url, params);
