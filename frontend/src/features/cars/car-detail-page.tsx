@@ -13,12 +13,15 @@ export function CarDetailPage() {
   const { id } = useParams()
   const carId = Number(id)
   const location = useLocation()
-  // Trip context forwarded from the agency flow (dates, destination, one-way).
+  // Trip context forwarded from the agency flow (dates, drop pin, one-way).
   const [searchParams] = useSearchParams()
+  const dlat = searchParams.get('dlat')
+  const dlng = searchParams.get('dlng')
   const trip = {
     from: searchParams.get('from') ?? undefined,
     to: searchParams.get('to') ?? undefined,
-    dest: searchParams.get('dest') ?? undefined,
+    dropLat: dlat ? Number(dlat) : undefined,
+    dropLng: dlng ? Number(dlng) : undefined,
     oneWay: searchParams.get('oneWay') === '1',
   }
   // Car passed via router state renders instantly while the fetch refreshes it.

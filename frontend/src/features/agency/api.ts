@@ -9,6 +9,7 @@ import type {
   CreateCarRequest,
   DocumentResponse,
   DocumentType,
+  LatLng,
   UpdateCarRequest,
 } from '../../lib/types'
 
@@ -25,6 +26,16 @@ export const agencyApi = baseApi.injectEndpoints({
     }),
     updateAgency: build.mutation<AgencyResponse, AgencyRequest>({
       query: (body) => ({ url: '/agencies/me', method: 'PUT', body }),
+      invalidatesTags: ['Agency'],
+    }),
+
+    // ── Operating area (the polygon trip searches match against) ──────────
+    getMyServiceArea: build.query<{ polygon: LatLng[] | null }, void>({
+      query: () => ({ url: '/agencies/me/service-area' }),
+      providesTags: ['Agency'],
+    }),
+    updateServiceArea: build.mutation<{ polygon: LatLng[] }, { polygon: LatLng[] }>({
+      query: (body) => ({ url: '/agencies/me/service-area', method: 'PUT', body }),
       invalidatesTags: ['Agency'],
     }),
 
@@ -155,6 +166,8 @@ export const {
   useGetMyAgencyQuery,
   useCreateAgencyMutation,
   useUpdateAgencyMutation,
+  useGetMyServiceAreaQuery,
+  useUpdateServiceAreaMutation,
   useGetAgencyDashboardQuery,
   useGetAgencyCarsQuery,
   useGetAgencyCarQuery,

@@ -192,16 +192,23 @@ public class BookingService {
 
     /** Builds and flushes a PENDING hold. Lets DB constraint violations propagate. */
     private Booking buildAndSave(Long userId, Car car, CreateBookingRequest req, String idempotencyKey) {
+        // Pickup point = where the car actually is (falls back to agency base);
+        // the city string is just a human-readable label for it.
+        Double pickupLat = car.getLatitude() != null ? car.getLatitude() : car.getAgency().getLatitude();
+        Double pickupLng = car.getLongitude() != null ? car.getLongitude() : car.getAgency().getLongitude();
         String pickupCity = car.getCurrentCity() != null ? car.getCurrentCity() : car.getAgency().getCity();
         TripType tripType = req.tripTypeOrDefault();
 
         // One-way: resolve (and validate) the distance-based relocation fee now,
-        // so the booking stores exactly what the quote showed.
+        // so the booking stores exactly what the quote showed. The drop pin must
+        // be inside a serviced operating area (checked by the fee service).
         BigDecimal oneWayFee = BigDecimal.ZERO;
         String dropCity = null;
         if (tripType == TripType.ONE_WAY) {
-            oneWayFee = oneWayFees.feeFor(pickupCity, req.dropCity());
-            dropCity = req.dropCity().trim();
+            oneWayFee = oneWayFees.feeFor(pickupLat, pickupLng, req.dropLat(), req.dropLng());
+            dropCity = cities.nearestTo(req.dropLat(), req.dropLng())
+                    .map(c -> c.city())
+                    .orElse(null);
         }
 
         Booking booking = new Booking();
@@ -215,6 +222,12 @@ public class BookingService {
         booking.setTripType(tripType);
         booking.setPickupCity(pickupCity);
         booking.setDropCity(dropCity);
+        booking.setPickupLat(pickupLat);
+        booking.setPickupLng(pickupLng);
+        if (tripType == TripType.ONE_WAY) {
+            booking.setDropLat(req.dropLat());
+            booking.setDropLng(req.dropLng());
+        }
         booking.setOneWayFee(oneWayFee);
         PriceBreakdown price = pricing.quote(car.getPricePerDay(), req.from(), req.to(), oneWayFee);
         booking.setAmount(pricing.chargeableAmount(price));
@@ -272,22 +285,23 @@ public class BookingService {
     }
 
     /**
-     * A completed one-way trip leaves the car at the drop city: its
-     * current city (and coordinates, for geo search) move there, so future
-     * searches find it where it actually is.
+     * A completed one-way trip leaves the car at the exact drop pin: its
+     * coordinates (which drive zone matching and geo search) and city label
+     * move there, so future searches find it where it actually is.
      */
     private void relocateIfOneWay(Booking booking) {
-        if (booking.getTripType() != TripType.ONE_WAY || booking.getDropCity() == null) {
+        if (booking.getTripType() != TripType.ONE_WAY
+                || booking.getDropLat() == null || booking.getDropLng() == null) {
             return;
         }
         Car car = booking.getCar();
-        car.setCurrentCity(booking.getDropCity());
-        cities.find(booking.getDropCity()).ifPresent(c -> {
-            car.setLatitude(c.latitude());
-            car.setLongitude(c.longitude());
-        });
-        log.info("One-way booking {} completed: car {} relocated to {}",
-                booking.getId(), car.getId(), booking.getDropCity());
+        car.setLatitude(booking.getDropLat());
+        car.setLongitude(booking.getDropLng());
+        if (booking.getDropCity() != null) {
+            car.setCurrentCity(booking.getDropCity());
+        }
+        log.info("One-way booking {} completed: car {} relocated to ({}, {})",
+                booking.getId(), car.getId(), booking.getDropLat(), booking.getDropLng());
     }
 
     @Transactional(readOnly = true)

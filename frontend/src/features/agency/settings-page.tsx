@@ -8,6 +8,7 @@ import { useToast } from '../../components/ui/toast'
 import { errorMessage } from '../../lib/errors'
 import { AgencyForm } from './agency-form'
 import { toAgencyRequest, type AgencyFormValues } from './agency-schema'
+import { ServiceAreaCard } from './service-area-card'
 import { useGetMyAgencyQuery, useUpdateAgencyMutation } from './api'
 
 export function AgencySettingsPage() {
@@ -58,6 +59,15 @@ export function AgencySettingsPage() {
           )}
         </CardContent>
       </Card>
+
+      <ServiceAreaCard
+        agencyCenter={
+          agency.latitude != null && agency.longitude != null
+            ? { lat: agency.latitude, lng: agency.longitude }
+            : null
+        }
+        canEdit={isAgencyAdmin}
+      />
     </div>
   )
 }

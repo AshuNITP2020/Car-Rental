@@ -18,6 +18,10 @@ public record BookingResponse(
         String tripType,
         String pickupCity,
         String dropCity,
+        Double pickupLat,
+        Double pickupLng,
+        Double dropLat,
+        Double dropLng,
         BigDecimal oneWayFee,
         OffsetDateTime expiresAt
 ) {
@@ -35,6 +39,10 @@ public record BookingResponse(
                 b.getTripType().name(),
                 b.getPickupCity(),
                 b.getDropCity(),
+                b.getPickupLat(),
+                b.getPickupLng(),
+                b.getDropLat(),
+                b.getDropLng(),
                 b.getOneWayFee(),
                 b.getExpiresAt());
     }

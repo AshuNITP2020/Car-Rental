@@ -14,6 +14,7 @@ import org.springframework.data.redis.serializer.GenericJacksonJsonRedisSerializ
 import org.springframework.data.redis.serializer.RedisSerializationContext.SerializationPair;
 
 import java.time.Duration;
+import java.util.Map;
 
 /**
  * Redis-backed caching. {@code @EnableCaching} turns on the Spring
@@ -44,10 +45,14 @@ public class CacheConfig implements CachingConfigurer {
 
     /** Hot customer car-search reads. Evicted on any car/agency write. */
     public static final String CAR_SEARCH_CACHE = "carSearch";
+    /** Geocoder lookups (GeoService). Place data is stable — long TTL, never evicted. */
+    public static final String GEO_SEARCH_CACHE = "geoSearch";
+    public static final String GEO_REVERSE_CACHE = "geoReverse";
 
     @Bean
     public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory,
-            @Value("${app.cache.search-ttl-seconds:60}") long ttlSeconds) {
+            @Value("${app.cache.search-ttl-seconds:60}") long ttlSeconds,
+            @Value("${app.cache.geo-ttl-seconds:86400}") long geoTtlSeconds) {
 
         RedisCacheWriter writer = RedisCacheWriter.create(connectionFactory,
                 config -> config.immediateWrites(true));
@@ -63,7 +68,14 @@ public class CacheConfig implements CachingConfigurer {
                                 .enableUnsafeDefaultTyping()
                                 .build()));
 
-        return RedisCacheManager.builder(writer).cacheDefaults(cacheConfig).build();
+        RedisCacheConfiguration geoConfig = cacheConfig.entryTtl(Duration.ofSeconds(geoTtlSeconds));
+
+        return RedisCacheManager.builder(writer)
+                .cacheDefaults(cacheConfig)
+                .withInitialCacheConfigurations(Map.of(
+                        GEO_SEARCH_CACHE, geoConfig,
+                        GEO_REVERSE_CACHE, geoConfig))
+                .build();
     }
 
     /**

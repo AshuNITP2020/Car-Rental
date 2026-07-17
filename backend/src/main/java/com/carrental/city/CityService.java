@@ -6,7 +6,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
 
 /**
@@ -32,34 +31,16 @@ public class CityService {
                 .toList();
     }
 
-    /** Case-insensitive lookup of a known operating city. */
-    @Transactional(readOnly = true)
-    public Optional<CityInfo> find(String city) {
-        if (city == null || city.isBlank()) {
-            return Optional.empty();
-        }
-        String needle = city.trim().toLowerCase(Locale.ROOT);
-        return operatingCities().stream()
-                .filter(c -> c.city().toLowerCase(Locale.ROOT).equals(needle))
-                .findFirst();
-    }
-
     /**
-     * Great-circle distance between two known cities' centroids, in km.
-     * Empty when either city is unknown or has no coordinates.
+     * The operating city nearest to a map point — used as the human-readable
+     * label for free-form pickup/drop pins ("~4 km from Mumbai").
      */
     @Transactional(readOnly = true)
-    public Optional<Double> distanceKm(String cityA, String cityB) {
-        Optional<CityInfo> a = find(cityA);
-        Optional<CityInfo> b = find(cityB);
-        if (a.isEmpty() || b.isEmpty()
-                || a.get().latitude() == null || a.get().longitude() == null
-                || b.get().latitude() == null || b.get().longitude() == null) {
-            return Optional.empty();
-        }
-        return Optional.of(haversineKm(
-                a.get().latitude(), a.get().longitude(),
-                b.get().latitude(), b.get().longitude()));
+    public Optional<CityInfo> nearestTo(double lat, double lng) {
+        return operatingCities().stream()
+                .filter(c -> c.latitude() != null && c.longitude() != null)
+                .min(java.util.Comparator.comparingDouble(
+                        c -> haversineKm(lat, lng, c.latitude(), c.longitude())));
     }
 
     /** Standard haversine great-circle distance. */

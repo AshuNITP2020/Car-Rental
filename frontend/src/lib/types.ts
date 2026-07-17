@@ -147,7 +147,22 @@ export interface CityInfo {
   longitude: number | null
 }
 
-/** One agency in the trip-first search — the marketplace's "ride option". */
+/** A WGS84 map point. */
+export interface LatLng {
+  lat: number
+  lng: number
+}
+
+/** A geocoded place (GET /api/geo/search|reverse): any city/town/village in India. */
+export interface PlaceSuggestion {
+  name: string
+  state: string | null
+  lat: number
+  lng: number
+}
+
+/** One agency in the trip-first search — the marketplace's "ride option".
+ *  Matched because its operating polygon covers the pickup pin. */
 export interface AgencySearchResult {
   agencyId: number
   name: string
@@ -158,6 +173,10 @@ export interface AgencySearchResult {
   fromPricePerDay: number
   averageRating: number | null
   reviewCount: number
+  /** Agency base -> pickup pin, km. */
+  distanceKm: number | null
+  /** The operating polygon (unclosed ring) — drawn on the results map. */
+  serviceArea: LatLng[] | null
 }
 
 // ── Bookings & payments ────────────────────────────────────────────────────────
@@ -174,6 +193,10 @@ export interface BookingResponse {
   tripType: TripType
   pickupCity: string | null
   dropCity: string | null
+  pickupLat: number | null
+  pickupLng: number | null
+  dropLat: number | null
+  dropLng: number | null
   oneWayFee: number
   expiresAt: string | null
 }
@@ -183,8 +206,9 @@ export interface CreateBookingRequest {
   to: string
   /** Defaults to ROUND_TRIP server-side when omitted. */
   tripType?: TripType
-  /** Required for ONE_WAY; must differ from the pickup city. */
-  dropCity?: string
+  /** ONE_WAY: the drop pin — must be inside a serviced operating area. */
+  dropLat?: number
+  dropLng?: number
 }
 export interface CancelResponse {
   bookingId: number

@@ -21,7 +21,7 @@ export type SearchParams = {
 }
 
 export type DateWindowArg = { id: number; from: string; to: string }
-export type QuoteArg = DateWindowArg & { dropCity?: string }
+export type QuoteArg = DateWindowArg & { dropLat?: number; dropLng?: number }
 
 export const carsApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
@@ -42,9 +42,9 @@ export const carsApi = baseApi.injectEndpoints({
       providesTags: (_r, _e, carId) => [{ type: 'CarReviews', id: carId }],
     }),
     getCarQuote: build.query<PriceBreakdown, QuoteArg>({
-      query: ({ id, from, to, dropCity }) => ({
+      query: ({ id, from, to, dropLat, dropLng }) => ({
         url: `/cars/${id}/quote`,
-        params: { from, to, dropCity },
+        params: { from, to, dropLat, dropLng },
       }),
     }),
     getCarAvailability: build.query<AvailabilityResponse, DateWindowArg>({

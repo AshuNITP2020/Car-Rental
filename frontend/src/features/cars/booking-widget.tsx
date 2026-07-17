@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { skipToken } from '@reduxjs/toolkit/query'
-import { CheckCircle2, MoveRight, ShieldCheck, XCircle } from 'lucide-react'
+import { CheckCircle2, MapPin, MoveRight, ShieldCheck, XCircle } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { Card } from '../../components/ui/card'
 import { DateRangePicker, type DateRangeValue } from '../../components/ui/date-range-picker'
@@ -13,7 +13,7 @@ import { dayAtHour, DEFAULT_RENTAL_HOUR, isValidRange } from '../../lib/date'
 import { errorMessage } from '../../lib/errors'
 import { formatMoney } from '../../lib/utils'
 import { useCreateBookingMutation } from '../bookings/api'
-import { useGetCitiesQuery } from '../trip/api'
+import { usePlaceLabel } from '../trip/api'
 import { useGetCarAvailabilityQuery, useGetCarQuoteQuery } from './api'
 
 /** Selectable pickup/return hours (6 AM – 10 PM). */
@@ -28,7 +28,9 @@ function hourLabel(h: number): string {
 export interface TripContext {
   from?: string
   to?: string
-  dest?: string
+  /** Drop pin from the trip planner (one-way trips are booked to a map point). */
+  dropLat?: number
+  dropLng?: number
   oneWay?: boolean
 }
 
@@ -39,12 +41,11 @@ export function BookingWidget({
 }: {
   carId: number
   pricePerDay: number
-  /** Prefill from the trip-first flow (dates, destination, one-way). */
+  /** Prefill from the trip-first flow (dates, drop pin, one-way). */
   trip?: TripContext
 }) {
   const toast = useToast()
   const navigate = useNavigate()
-  const { data: cities = [] } = useGetCitiesQuery()
   const [createBooking, { isLoading: creating }] = useCreateBookingMutation()
 
   const [range, setRange] = useState<DateRangeValue>(() =>
@@ -58,8 +59,8 @@ export function BookingWidget({
   const [returnHour, setReturnHour] = useState(() =>
     trip?.to ? new Date(trip.to).getHours() : DEFAULT_RENTAL_HOUR,
   )
-  const [oneWay, setOneWay] = useState(trip?.oneWay ?? false)
-  const [dropCity, setDropCity] = useState(trip?.dest ?? '')
+  const hasDropPin = trip?.dropLat != null && trip?.dropLng != null
+  const [oneWay, setOneWay] = useState((trip?.oneWay ?? false) && hasDropPin)
 
   const rawFrom = range.from ? dayAtHour(range.from, pickupHour) : undefined
   const rawTo = range.to ? dayAtHour(range.to, returnHour) : undefined
@@ -69,19 +70,27 @@ export function BookingWidget({
   const from = bothSet ? rawFrom : undefined
   const to = bothSet ? rawTo : undefined
 
-  const wantsOneWay = oneWay && dropCity.trim() !== ''
+  const wantsOneWay = oneWay && hasDropPin
   const window = from && to ? { id: carId, from, to } : skipToken
   const availability = useGetCarAvailabilityQuery(window)
   const quote = useGetCarQuoteQuery(
     from && to
-      ? { id: carId, from, to, ...(wantsOneWay ? { dropCity: dropCity.trim() } : {}) }
+      ? {
+          id: carId,
+          from,
+          to,
+          ...(wantsOneWay ? { dropLat: trip!.dropLat, dropLng: trip!.dropLng } : {}),
+        }
       : skipToken,
   )
 
   const available = availability.data?.available
-  const quoteBlocked = wantsOneWay && quote.isError // e.g. same-city / unknown drop
-  const canBook =
-    bothSet && available === true && !creating && (!oneWay || wantsOneWay) && !quoteBlocked
+  const quoteBlocked = wantsOneWay && quote.isError // e.g. drop point not serviced
+  const canBook = bothSet && available === true && !creating && !quoteBlocked
+
+  const dropLabel = usePlaceLabel(
+    hasDropPin ? { lat: trip!.dropLat!, lng: trip!.dropLng! } : null,
+  )
 
   async function book() {
     if (!from || !to) return
@@ -90,7 +99,9 @@ export function BookingWidget({
         carId,
         from,
         to,
-        ...(wantsOneWay ? { tripType: 'ONE_WAY' as const, dropCity: dropCity.trim() } : {}),
+        ...(wantsOneWay
+          ? { tripType: 'ONE_WAY' as const, dropLat: trip!.dropLat, dropLng: trip!.dropLng }
+          : {}),
       }).unwrap()
       toast.success('Car held — complete payment to confirm your booking')
       navigate(`/trips/${booking.id}`)
@@ -145,32 +156,28 @@ export function BookingWidget({
       )}
 
       {/* ── Trip type ─────────────────────────────────────────────────────── */}
-      <div className="space-y-2">
-        <label className="flex cursor-pointer items-center gap-2 text-sm">
+      {hasDropPin ? (
+        <label className="flex cursor-pointer items-start gap-2 rounded-[var(--radius)] border border-border bg-muted/40 p-3 text-sm">
           <input
             type="checkbox"
             checked={oneWay}
             onChange={(e) => setOneWay(e.target.checked)}
-            className="h-4 w-4 accent-[var(--primary)]"
+            className="mt-0.5 h-4 w-4 accent-[var(--primary)]"
           />
-          <span className="font-medium">One-way drop-off</span>
-          <MoveRight className="h-4 w-4 text-muted-foreground" />
+          <span>
+            <span className="inline-flex items-center gap-1.5 font-medium">
+              One-way drop-off <MoveRight className="h-4 w-4 text-muted-foreground" />
+            </span>
+            <span className="mt-0.5 flex items-center gap-1 text-muted-foreground">
+              <MapPin className="h-3.5 w-3.5 shrink-0" /> {dropLabel}
+            </span>
+          </span>
         </label>
-        {oneWay && (
-          <Select
-            aria-label="Drop city"
-            value={dropCity}
-            onChange={(e) => setDropCity(e.target.value)}
-          >
-            <option value="">Choose a drop city…</option>
-            {cities.map((c) => (
-              <option key={c.city} value={c.city}>
-                {c.city}
-              </option>
-            ))}
-          </Select>
-        )}
-      </div>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          Want to drop the car somewhere else? Set a drop pin on the trip planner.
+        </p>
+      )}
 
       {bothSet && (
         <div className="rounded-[var(--radius)] border border-border p-3 text-sm">
@@ -191,11 +198,7 @@ export function BookingWidget({
         </div>
       )}
 
-      {quoteBlocked && (
-        <p className="text-sm text-destructive">
-          {errorMessage(quote.error)}
-        </p>
-      )}
+      {quoteBlocked && <p className="text-sm text-destructive">{errorMessage(quote.error)}</p>}
 
       {quote.data && available !== false && !quoteBlocked && (
         <dl className="space-y-1.5 text-sm">
@@ -215,7 +218,7 @@ export function BookingWidget({
           </div>
           {quote.data.oneWayFee > 0 && (
             <div className="flex justify-between">
-              <dt className="text-muted-foreground">One-way drop-off ({dropCity.trim()})</dt>
+              <dt className="text-muted-foreground">One-way drop-off ({dropLabel})</dt>
               <dd>{formatMoney(quote.data.oneWayFee)}</dd>
             </div>
           )}
@@ -227,7 +230,7 @@ export function BookingWidget({
       )}
 
       <Button className="w-full" disabled={!canBook} loading={creating} onClick={book}>
-        {!bothSet ? 'Select dates' : oneWay && !wantsOneWay ? 'Choose a drop city' : 'Book & hold'}
+        {bothSet ? 'Book & hold' : 'Select dates'}
       </Button>
       <p className="text-center text-xs text-muted-foreground">
         You won’t be charged until you pay on the next step.

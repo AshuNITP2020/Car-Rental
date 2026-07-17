@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { createSearchParams, Link, useSearchParams } from 'react-router-dom'
 import { skipToken } from '@reduxjs/toolkit/query'
 import { ArrowLeft, Building2, CarFront, ChevronRight, MoveRight } from 'lucide-react'
@@ -6,40 +7,48 @@ import { StarRating } from '../../components/ui/rating'
 import { Skeleton } from '../../components/ui/skeleton'
 import { formatDate } from '../../lib/date'
 import { formatMoney } from '../../lib/utils'
-import { cityDistanceKm, useGetCitiesQuery, useSearchAgenciesQuery } from './api'
+import { haversineKm, usePlaceLabel, useSearchAgenciesQuery } from './api'
+
+const ResultsMap = lazy(() => import('./results-map'))
 
 /**
- * The "choose your ride" screen: agencies operating at the pickup city for the
- * chosen window — rating, fleet available, starting price. Selecting one goes
- * to its profile with the whole trip context (dates, destination, one-way).
+ * The "choose your ride" screen: agencies whose operating polygon covers the
+ * pickup pin — with the map proving why each one matched. Selecting one goes
+ * to its profile with the whole trip context (pins, dates, one-way).
  */
 export function AgencyResultsPage() {
   const [searchParams] = useSearchParams()
-  const city = searchParams.get('city') ?? ''
-  const dest = searchParams.get('dest') ?? ''
+  const plat = Number(searchParams.get('plat'))
+  const plng = Number(searchParams.get('plng'))
+  const dlat = searchParams.get('dlat') ? Number(searchParams.get('dlat')) : null
+  const dlng = searchParams.get('dlng') ? Number(searchParams.get('dlng')) : null
   const oneWay = searchParams.get('oneWay') === '1'
   const from = searchParams.get('from') ?? undefined
   const to = searchParams.get('to') ?? undefined
+  const hasPickup = Number.isFinite(plat) && Number.isFinite(plng) && (plat !== 0 || plng !== 0)
 
-  const { data: cities = [] } = useGetCitiesQuery()
-  const results = useSearchAgenciesQuery(city ? { city, from, to } : skipToken)
+  const results = useSearchAgenciesQuery(hasPickup ? { lat: plat, lng: plng, from, to } : skipToken)
+  const pickupLabel = usePlaceLabel(hasPickup ? { lat: plat, lng: plng } : null)
+  const dropLabel = usePlaceLabel(dlat != null && dlng != null ? { lat: dlat, lng: dlng } : null)
 
-  const distanceKm = dest ? cityDistanceKm(cities, city, dest) : null
   const agencies = results.data ?? []
+  const routeKm = dlat != null && dlng != null ? haversineKm(plat, plng, dlat, dlng) : null
 
   /** Trip context forwarded to the agency profile / cars / booking. */
   const tripSearch = `?${createSearchParams({
     ...(from && to ? { from, to } : {}),
-    ...(dest ? { dest } : {}),
+    ...(dlat != null && dlng != null
+      ? { dlat: String(dlat), dlng: String(dlng) }
+      : {}),
     ...(oneWay ? { oneWay: '1' } : {}),
   })}`
 
-  if (!city) {
+  if (!hasPickup) {
     return (
       <EmptyState
         icon={Building2}
-        title="No pickup city chosen"
-        description="Start from the trip form."
+        title="No pickup pin"
+        description="Start from the trip planner."
         action={
           <Link to="/" className="text-sm font-medium text-primary hover:underline">
             Plan a trip
@@ -61,11 +70,11 @@ export function AgencyResultsPage() {
       {/* ── Route summary ─────────────────────────────────────────────────── */}
       <section className="rounded-3xl bg-gradient-to-br from-indigo-600 to-violet-700 px-6 py-5 text-white shadow-lg">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xl font-semibold">
-          <span>{city}</span>
-          {dest && (
+          <span>{pickupLabel}</span>
+          {dlat != null && dlng != null && (
             <>
               <MoveRight className="h-5 w-5 text-indigo-200" />
-              <span>{dest}</span>
+              <span>{dropLabel}</span>
             </>
           )}
           {oneWay && (
@@ -76,19 +85,24 @@ export function AgencyResultsPage() {
         </div>
         <p className="mt-1 text-sm text-indigo-100">
           {from && to ? `${formatDate(from)} → ${formatDate(to)}` : 'Any dates'}
-          {distanceKm != null && ` · ~${Math.round(distanceKm)} km`}
-          {dest && !oneWay && ' · round trip'}
+          {routeKm != null && routeKm >= 1 && ` · ~${Math.round(routeKm)} km`}
+          {dlat != null && !oneWay && ' · round trip'}
         </p>
       </section>
 
+      {/* ── Coverage map ──────────────────────────────────────────────────── */}
+      {agencies.length > 0 && (
+        <Suspense fallback={<Skeleton className="h-[360px] w-full rounded-2xl" />}>
+          <ResultsMap pickup={{ lat: plat, lng: plng }} agencies={agencies} />
+        </Suspense>
+      )}
+
       {/* ── Agencies ──────────────────────────────────────────────────────── */}
-      <div className="flex items-baseline justify-between">
-        <h1 className="text-lg font-semibold">
-          {results.isFetching
-            ? 'Finding agencies…'
-            : `${agencies.length} agenc${agencies.length === 1 ? 'y' : 'ies'} in ${city}`}
-        </h1>
-      </div>
+      <h1 className="text-lg font-semibold">
+        {results.isFetching
+          ? 'Finding agencies…'
+          : `${agencies.length} agenc${agencies.length === 1 ? 'y' : 'ies'} operate at your pickup point`}
+      </h1>
 
       {results.isLoading ? (
         <div className="space-y-3">
@@ -101,8 +115,8 @@ export function AgencyResultsPage() {
       ) : agencies.length === 0 ? (
         <EmptyState
           icon={CarFront}
-          title={`No cars available in ${city} for these dates`}
-          description="Try different dates or a nearby city."
+          title="No agency operates at this point for these dates"
+          description="Move your pickup pin toward a city, or try different dates."
         />
       ) : (
         <div className="space-y-3">
@@ -129,6 +143,7 @@ export function AgencyResultsPage() {
                 <p className="mt-0.5 text-sm text-muted-foreground">
                   {a.availableCars} car{a.availableCars === 1 ? '' : 's'} available
                   {from && to ? ' for your dates' : ''}
+                  {a.distanceKm != null && ` · base ${a.distanceKm.toFixed(1)} km away`}
                 </p>
               </div>
               <div className="shrink-0 text-right">
@@ -143,7 +158,6 @@ export function AgencyResultsPage() {
           ))}
         </div>
       )}
-
     </div>
   )
 }

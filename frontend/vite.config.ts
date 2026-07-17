@@ -9,9 +9,10 @@ export default defineConfig({
   server: {
     port: 5173,
     // Proxy API calls to the Spring Boot backend during dev so the browser
-    // can call /api/... without CORS.
+    // can call /api/... without CORS. Override with VITE_API_PROXY when the
+    // backend runs elsewhere (e.g. a second instance on another port).
     proxy: {
-      '/api': 'http://localhost:8080',
+      '/api': process.env.VITE_API_PROXY ?? 'http://localhost:8080',
     },
   },
   test: {

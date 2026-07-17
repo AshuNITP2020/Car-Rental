@@ -32,7 +32,7 @@ public class AnalyticsConsumer {
         DomainEvent event = objectMapper.readValue(message, DomainEvent.class);
         String eventId = event.type() + ":" + event.bookingId() + ":" + event.occurredAt();
         if (audits.existsByEventId(eventId)) {
-            return;   // already recorded — idempotent skip
+            return;
         }
         EventAudit audit = new EventAudit();
         audit.setEventId(eventId);

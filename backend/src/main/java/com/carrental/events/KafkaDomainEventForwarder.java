@@ -37,7 +37,7 @@ public class KafkaDomainEventForwarder {
             String json = objectMapper.writeValueAsString(event);
             kafka.send(TOPIC, String.valueOf(event.bookingId()), json);
             log.debug("Published {} for booking {}", event.type(), event.bookingId());
-        } catch (RuntimeException e) {   // Jackson 3 throws unchecked; never break the request
+        } catch (RuntimeException e) {
             log.error("Failed to publish domain event {}: {}", event, e.getMessage());
         }
     }

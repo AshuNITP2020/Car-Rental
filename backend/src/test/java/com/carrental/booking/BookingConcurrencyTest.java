@@ -83,7 +83,7 @@ class BookingConcurrencyTest {
                 c.getId(),
                 OffsetDateTime.parse("2026-06-21T10:00:00Z"),
                 OffsetDateTime.parse("2026-06-24T10:00:00Z"),
-                null, null);
+                null, null, null);
     }
 
     @Test
