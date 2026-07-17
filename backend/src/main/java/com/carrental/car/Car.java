@@ -70,6 +70,11 @@ public class Car {
 
     private Double longitude;
 
+    /** Where the car actually is right now — a completed one-way trip leaves it
+     *  at the drop city (V15). Falls back to the agency's city when null. */
+    @Column(name = "current_city", length = 100)
+    private String currentCity;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private CarStatus status = CarStatus.AVAILABLE;

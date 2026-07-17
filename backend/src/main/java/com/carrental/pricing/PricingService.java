@@ -20,27 +20,43 @@ public class PricingService {
     private final BigDecimal gstPercent;
     private final BigDecimal depositPercent;
     private final BigDecimal platformFeePercent;
+    private final BigDecimal oneWayPerKm;
     private final String currency;
 
     public PricingService(
             @Value("${app.pricing.gst-percent:18}") BigDecimal gstPercent,
             @Value("${app.pricing.deposit-percent:20}") BigDecimal depositPercent,
             @Value("${app.pricing.platform-fee-percent:10}") BigDecimal platformFeePercent,
+            @Value("${app.pricing.one-way-per-km:12}") BigDecimal oneWayPerKm,
             @Value("${app.payments.currency:INR}") String currency) {
         this.gstPercent = gstPercent;
         this.depositPercent = depositPercent;
         this.platformFeePercent = platformFeePercent;
+        this.oneWayPerKm = oneWayPerKm;
         this.currency = currency;
     }
 
+    /** Round-trip quote (no relocation fee). */
     public PriceBreakdown quote(BigDecimal pricePerDay, OffsetDateTime from, OffsetDateTime to) {
+        return quote(pricePerDay, from, to, BigDecimal.ZERO);
+    }
+
+    /** Quote including a one-way relocation fee (0 for round trips). */
+    public PriceBreakdown quote(BigDecimal pricePerDay, OffsetDateTime from, OffsetDateTime to,
+                                BigDecimal oneWayFee) {
         long days = Math.max(1, (long) Math.ceil(Duration.between(from, to).toMinutes() / 1440.0));
         BigDecimal rental = money(pricePerDay.multiply(BigDecimal.valueOf(days)));
         BigDecimal gst = percentOf(rental, gstPercent);
         BigDecimal deposit = percentOf(rental, depositPercent);
         BigDecimal platformFee = percentOf(rental, platformFeePercent);
-        BigDecimal total = money(rental.add(gst).add(deposit));
-        return new PriceBreakdown(days, rental, gst, deposit, platformFee, total, currency);
+        BigDecimal fee = money(oneWayFee == null ? BigDecimal.ZERO : oneWayFee);
+        BigDecimal total = money(rental.add(gst).add(deposit).add(fee));
+        return new PriceBreakdown(days, rental, gst, deposit, fee, platformFee, total, currency);
+    }
+
+    /** The distance-based relocation fee for a one-way drop-off. */
+    public BigDecimal oneWayFeeFor(double distanceKm) {
+        return money(oneWayPerKm.multiply(BigDecimal.valueOf(distanceKm)));
     }
 
     /** The non-refundable amount charged on the booking (rental + GST). */

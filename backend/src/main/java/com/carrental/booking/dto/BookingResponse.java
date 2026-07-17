@@ -15,6 +15,14 @@ public record BookingResponse(
         String status,
         BigDecimal amount,
         BigDecimal deposit,
+        String tripType,
+        String pickupCity,
+        String dropCity,
+        Double pickupLat,
+        Double pickupLng,
+        Double dropLat,
+        Double dropLng,
+        BigDecimal oneWayFee,
         OffsetDateTime expiresAt
 ) {
     public static BookingResponse from(Booking b) {
@@ -28,6 +36,14 @@ public record BookingResponse(
                 b.getStatus().name(),
                 b.getAmount(),
                 b.getDeposit(),
+                b.getTripType().name(),
+                b.getPickupCity(),
+                b.getDropCity(),
+                b.getPickupLat(),
+                b.getPickupLng(),
+                b.getDropLat(),
+                b.getDropLng(),
+                b.getOneWayFee(),
                 b.getExpiresAt());
     }
 }

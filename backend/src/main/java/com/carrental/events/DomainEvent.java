@@ -8,13 +8,13 @@ import java.math.BigDecimal;
  * message. Consumers react by `type`.
  */
 public record DomainEvent(
-        String type,          // PAYMENT_CAPTURED | BOOKING_CONFIRMED | BOOKING_CANCELLED | BOOKING_COMPLETED
+        String type,
         Long bookingId,
         Long userId,
         Long agencyId,
         Long carId,
-        BigDecimal amount,    // nullable — booking charge, where relevant
-        String occurredAt     // ISO-8601 timestamp
+        BigDecimal amount,
+        String occurredAt
 ) {
     public static final String PAYMENT_CAPTURED = "PAYMENT_CAPTURED";
     public static final String BOOKING_CONFIRMED = "BOOKING_CONFIRMED";

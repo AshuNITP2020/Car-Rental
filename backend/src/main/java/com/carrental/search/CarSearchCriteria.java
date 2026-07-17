@@ -1,24 +1,19 @@
 package com.carrental.search;
 
-import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
 /**
- * Normalized, validated inputs for a car search. The controller turns raw query
- * params into this (blank strings -> null, bounds checked); the service turns it
- * into a query. {@code from}/{@code to} are either both set (availability filter)
- * or both null.
+ * Normalized, validated inputs for a car search. The trip-first flow needs no
+ * more than this: available cars — optionally one agency's fleet (its public
+ * profile page), optionally free for a window. {@code from}/{@code to} are
+ * either both set (availability filter) or both null. Results are always
+ * ordered cheapest first (deterministic tie-break on id).
  */
 public record CarSearchCriteria(
-        String city,
-        String category,
-        String keyword,
-        BigDecimal minPrice,
-        BigDecimal maxPrice,
+        /** Restrict to one agency's fleet, or null for all. */
+        Long agencyId,
         OffsetDateTime from,
         OffsetDateTime to,
-        /*price, asc. desc*/
-        String sort,
         int page,
         int size
 ) {
@@ -29,9 +24,7 @@ public record CarSearchCriteria(
      */
     public String cacheKey() {
         return String.join("|",
-                String.valueOf(city), String.valueOf(category), String.valueOf(keyword),
-                String.valueOf(minPrice), String.valueOf(maxPrice),
-                String.valueOf(from), String.valueOf(to),
-                sort, String.valueOf(page), String.valueOf(size));
+                String.valueOf(agencyId), String.valueOf(from), String.valueOf(to),
+                String.valueOf(page), String.valueOf(size));
     }
 }

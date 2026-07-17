@@ -51,7 +51,15 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**", "/api/health", "/actuator/**").permitAll()
                         .requestMatchers("/api/payments/webhook").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/media/**").permitAll()
-                        .requestMatchers("/checkout.html").permitAll()
+                        // The backend also serves the built web app (SpaController +
+                        // woven /static assets): the shell, its assets and the
+                        // client-side routes are public GETs. Everything under /api
+                        // keeps the rules above / default-deny below.
+                        .requestMatchers(HttpMethod.GET,
+                                "/", "/index.html", "/assets/**", "/favicon.svg",
+                                "/login", "/register", "/trips", "/trips/**", "/account",
+                                "/cars/**", "/agencies/**", "/agency", "/agency/**",
+                                "/admin", "/admin/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("PLATFORM_ADMIN")
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

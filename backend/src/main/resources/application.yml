@@ -98,6 +98,10 @@ app:
       webhook-secret: ${RAZORPAY_WEBHOOK_SECRET:}
   cache:
     search-ttl-seconds: ${CACHE_SEARCH_TTL_SECONDS:60}   # bound staleness of cached search reads (#34)
+    geo-ttl-seconds: ${CACHE_GEO_TTL_SECONDS:86400}      # geocoder lookups are stable — cache a day
+  geo:                                                   # place search for the trip form (GeoService)
+    base-url: ${GEO_BASE_URL:https://photon.komoot.io}   # Photon (OSM); swap to a paid geocoder here
+    timeout-ms: ${GEO_TIMEOUT_MS:3000}
   rate-limit:                                            # per-client API throttle (#35)
     enabled: ${RATE_LIMIT_ENABLED:true}
     requests-per-minute: ${RATE_LIMIT_RPM:120}           # per user (or IP), fixed 60s window

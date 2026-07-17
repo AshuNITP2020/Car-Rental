@@ -22,6 +22,16 @@ public interface PaymentGateway {
      */
     CaptureEvent verifyAndExtractCapture(String payload, String signature);
 
+    /**
+     * Verifies the signature the provider's BROWSER checkout hands back after a
+     * successful payment (Razorpay: HMAC of "orderId|paymentId" with the key
+     * secret). Lets the server confirm a payment without waiting for a webhook.
+     * Providers without a checkout handshake (mock) return false.
+     */
+    default boolean verifyCheckoutSignature(String orderId, String paymentId, String signature) {
+        return false;
+    }
+
     /** Refunds (part of) a captured payment. paymentRef is the provider PAYMENT id. */
     RefundResult refund(String paymentRef, BigDecimal amount, String currency);
 
