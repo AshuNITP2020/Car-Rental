@@ -31,10 +31,11 @@ public class AgencySearchService {
     }
 
     @Transactional(readOnly = true)
-    public List<AgencySearchResult> search(double lat, double lng, OffsetDateTime from, OffsetDateTime to) {
+    public List<AgencySearchResult> search(double lat, double lng, Double dropLat, Double dropLng,
+                                           OffsetDateTime from, OffsetDateTime to) {
         List<AgencySearchRepository.AgencyAggRow> rows = from == null
-                ? repo.agenciesCovering(lat, lng)
-                : repo.agenciesCoveringBetween(lat, lng, from, to,
+                ? repo.agenciesCovering(lat, lng, dropLat, dropLng)
+                : repo.agenciesCoveringBetween(lat, lng, dropLat, dropLng, from, to,
                         BookingStatus.BLOCKING.stream().map(Enum::name).toList());
         if (rows.isEmpty()) {
             return List.of();

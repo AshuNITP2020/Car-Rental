@@ -43,6 +43,17 @@ public class ServiceAreaController {
         return new CoversResponse(serviceAreas.isCovered(lat, lng));
     }
 
+    /** Can anyone run the WHOLE route? One zone must contain both ends. */
+    @GetMapping("/api/service-areas/covers-route")
+    public RouteCoverageResponse coversRoute(@RequestParam double plat, @RequestParam double plng,
+                                             @RequestParam double dlat, @RequestParam double dlng) {
+        long agencies = serviceAreas.routeCoverage(plat, plng, dlat, dlng);
+        return new RouteCoverageResponse(agencies > 0, agencies);
+    }
+
     public record CoversResponse(boolean covered) {
+    }
+
+    public record RouteCoverageResponse(boolean covered, long agencies) {
     }
 }

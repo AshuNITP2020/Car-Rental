@@ -32,9 +32,31 @@ public interface ServiceAreaRepository extends Repository<Agency, Long> {
             + " and ST_Area(ST_GeomFromGeoJSON(:geojson)::geography) <= 2.0e11", nativeQuery = true)
     boolean isAcceptablePolygon(@Param("geojson") String geojson);
 
-    /** Is this map point inside ANY agency's operating area? (drop-pin check) */
+    /** Is this map point inside ANY live agency's operating area? (pin badge) */
     @Query(value = "select exists(select 1 from agency where service_area is not null"
+            + " and status = 'ACTIVE'"
             + " and ST_Covers(service_area, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography))",
             nativeQuery = true)
     boolean anyAgencyCovers(@Param("lat") double lat, @Param("lng") double lng);
+
+    /** Does THIS agency's zone cover the point? (one-way drop must stay in-zone) */
+    @Query(value = "select exists(select 1 from agency where id = :agencyId"
+            + " and service_area is not null"
+            + " and ST_Covers(service_area, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography))",
+            nativeQuery = true)
+    boolean agencyCovers(@Param("agencyId") Long agencyId,
+                         @Param("lat") double lat, @Param("lng") double lng);
+
+    /**
+     * How many live agencies could run the WHOLE route — their single zone
+     * covers pickup and drop. Cars never leave their agency's area, so a trip
+     * is only offerable when one polygon contains both ends.
+     */
+    @Query(value = "select count(*) from agency where service_area is not null"
+            + " and status = 'ACTIVE'"
+            + " and ST_Covers(service_area, ST_SetSRID(ST_MakePoint(:plng, :plat), 4326)::geography)"
+            + " and ST_Covers(service_area, ST_SetSRID(ST_MakePoint(:dlng, :dlat), 4326)::geography)",
+            nativeQuery = true)
+    long countCoveringRoute(@Param("plat") double plat, @Param("plng") double plng,
+                            @Param("dlat") double dlat, @Param("dlng") double dlng);
 }

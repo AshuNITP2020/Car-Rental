@@ -5,11 +5,14 @@ import { Card } from '../../components/ui/card'
 export function AuthLayout({
   title,
   subtitle,
+  badge,
   children,
   footer,
 }: {
   title: string
   subtitle?: string
+  /** Portal chip next to the wordmark (e.g. "for Agencies"). */
+  badge?: string
   children: ReactNode
   footer?: ReactNode
 }) {
@@ -26,6 +29,11 @@ export function AuthLayout({
               <Car className="h-5 w-5" />
             </span>
             CarRental
+            {badge && (
+              <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+                {badge}
+              </span>
+            )}
           </div>
           <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
           {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}

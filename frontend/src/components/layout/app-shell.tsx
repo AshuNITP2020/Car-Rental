@@ -31,6 +31,7 @@ const NAV: Record<Area, { to: string; label: string; end?: boolean }[]> = {
     { to: '/agency/settings', label: 'Settings' },
   ],
   admin: [
+    { to: '/admin/agencies', label: 'Agencies' },
     { to: '/admin/users', label: 'Users' },
     { to: '/admin/documents', label: 'Documents' },
   ],
@@ -86,7 +87,7 @@ function WorkspaceSwitcher({ area }: { area: Area }) {
             {hasAgency ? 'Agency console' : 'Become an agency'}
           </DropdownMenu.Item>
           {isAdmin && (
-            <DropdownMenu.Item className={menuItemClass} onSelect={() => navigate('/admin/users')}>
+            <DropdownMenu.Item className={menuItemClass} onSelect={() => navigate('/admin/agencies')}>
               <ShieldCheck className="h-4 w-4" /> Admin
             </DropdownMenu.Item>
           )}
@@ -136,9 +137,14 @@ function UserMenu() {
 
 export function AppShell() {
   const { pathname } = useLocation()
-  const { user } = useAuth()
+  const { user, hasAgency } = useAuth()
   const area = currentArea(pathname)
   const showKyc = area === 'customer' && user && user.kycStatus !== 'VERIFIED'
+  // Agency members get their console as a first-class tab, not just the switcher.
+  const navItems =
+    area === 'customer' && hasAgency
+      ? [...NAV.customer, { to: '/agency', label: 'My agency' }]
+      : NAV[area]
 
   return (
     <div className="min-h-screen">
@@ -152,7 +158,7 @@ export function AppShell() {
           </Link>
 
           <nav className="ml-2 hidden items-center gap-1 md:flex">
-            {NAV[area].map((item) => (
+            {navItems.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}

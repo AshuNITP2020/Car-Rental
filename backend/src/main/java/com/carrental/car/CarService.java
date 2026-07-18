@@ -1,6 +1,7 @@
 package com.carrental.car;
 
 import com.carrental.agency.AgencyRepository;
+import com.carrental.agency.ServiceAreaService;
 import com.carrental.car.dto.CreateCarRequest;
 import com.carrental.car.dto.UpdateCarRequest;
 import com.carrental.config.CacheConfig;
@@ -18,10 +19,13 @@ public class CarService {
 
     private final CarRepository cars;
     private final AgencyRepository agencies;
+    private final ServiceAreaService serviceAreas;
 
-    public CarService(CarRepository cars, AgencyRepository agencies) {
+    public CarService(CarRepository cars, AgencyRepository agencies,
+                      ServiceAreaService serviceAreas) {
         this.cars = cars;
         this.agencies = agencies;
+        this.serviceAreas = serviceAreas;
     }
 
     @Transactional(readOnly = true)
@@ -37,6 +41,7 @@ public class CarService {
     @CacheEvict(cacheNames = CacheConfig.CAR_SEARCH_CACHE, allEntries = true)
     @Transactional
     public CarResponse create(Long agencyId, CreateCarRequest req) {
+        requireInZone(agencyId, req.latitude(), req.longitude());
         Car car = new Car();
         car.setAgency(agencies.getReferenceById(agencyId));
         car.setMake(req.make().trim());
@@ -55,6 +60,7 @@ public class CarService {
     @CacheEvict(cacheNames = CacheConfig.CAR_SEARCH_CACHE, allEntries = true)
     @Transactional
     public CarResponse update(Long agencyId, Long carId, UpdateCarRequest req) {
+        requireInZone(agencyId, req.latitude(), req.longitude());
         Car car = load(agencyId, carId);
         car.setMake(req.make().trim());
         car.setModel(req.model().trim());
@@ -71,6 +77,23 @@ public class CarService {
     @Transactional
     public void delete(Long agencyId, Long carId) {
         cars.delete(load(agencyId, carId));
+    }
+
+    /**
+     * A car placed outside its agency's operating area would be invisible to
+     * search (the zone must cover the car) — reject it up front instead of
+     * letting it vanish silently. No coordinates = parked at the agency base,
+     * which is always fine; no zone drawn yet = nothing to validate against.
+     */
+    private void requireInZone(Long agencyId, Double lat, Double lng) {
+        if (lat == null || lng == null) {
+            return;
+        }
+        boolean hasZone = serviceAreas.get(agencyId).isPresent();
+        if (hasZone && !serviceAreas.isCoveredBy(agencyId, lat, lng)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "The car's location must be inside your operating area");
+        }
     }
 
     /** Loads a car only within the tenant; 404 otherwise (no cross-tenant peek). */

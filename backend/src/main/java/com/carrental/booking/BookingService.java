@@ -201,11 +201,13 @@ public class BookingService {
 
         // One-way: resolve (and validate) the distance-based relocation fee now,
         // so the booking stores exactly what the quote showed. The drop pin must
-        // be inside a serviced operating area (checked by the fee service).
+        // be inside THIS car's agency zone (checked by the fee service) — an
+        // agency's cars never leave its own operating area.
         BigDecimal oneWayFee = BigDecimal.ZERO;
         String dropCity = null;
         if (tripType == TripType.ONE_WAY) {
-            oneWayFee = oneWayFees.feeFor(pickupLat, pickupLng, req.dropLat(), req.dropLng());
+            oneWayFee = oneWayFees.feeFor(car.getAgency().getId(),
+                    pickupLat, pickupLng, req.dropLat(), req.dropLng());
             dropCity = cities.nearestTo(req.dropLat(), req.dropLng())
                     .map(c -> c.city())
                     .orElse(null);

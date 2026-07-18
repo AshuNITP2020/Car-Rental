@@ -79,4 +79,19 @@ public class AgencyService {
         agency.setLongitude(req.longitude());
         return AgencyResponse.from(agency);
     }
+
+    /**
+     * Platform-admin lifecycle decision. ACTIVE agencies appear in search;
+     * PENDING/SUSPENDED ones are invisible to customers (enforced in the
+     * search SQL and covers checks). Evicts search caches so the flip is
+     * immediately visible.
+     */
+    @CacheEvict(cacheNames = CacheConfig.CAR_SEARCH_CACHE, allEntries = true)
+    @Transactional
+    public AgencyResponse updateStatus(Long agencyId, AgencyStatus status) {
+        Agency agency = agencies.findById(agencyId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Agency not found"));
+        agency.setStatus(status);
+        return AgencyResponse.from(agency);
+    }
 }

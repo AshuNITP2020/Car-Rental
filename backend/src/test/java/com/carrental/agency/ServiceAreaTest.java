@@ -4,6 +4,7 @@ import com.carrental.agency.dto.LatLng;
 import com.carrental.car.Car;
 import com.carrental.car.CarRepository;
 import com.carrental.car.CarStatus;
+import com.carrental.pricing.OneWayFeeService;
 import com.carrental.search.AgencySearchResult;
 import com.carrental.search.AgencySearchService;
 import com.carrental.user.User;
@@ -38,6 +39,7 @@ class ServiceAreaTest {
 
     @Autowired ServiceAreaService serviceAreas;
     @Autowired AgencySearchService agencySearch;
+    @Autowired OneWayFeeService oneWayFees;
     @Autowired UserRepository users;
     @Autowired AgencyRepository agencies;
     @Autowired CarRepository cars;
@@ -96,7 +98,7 @@ class ServiceAreaTest {
 
     @Test
     void searchMatchesOnlyWhenPickupPinIsInsideTheZone() {
-        List<AgencySearchResult> inside = agencySearch.search(LAT, LNG, null, null);
+        List<AgencySearchResult> inside = agencySearch.search(LAT, LNG, null, null, null, null);
         assertTrue(inside.stream().anyMatch(a -> a.agencyId().equals(agency.getId())),
                 "pickup inside the polygon must match the agency");
         AgencySearchResult hit = inside.stream()
@@ -104,9 +106,76 @@ class ServiceAreaTest {
         assertEquals(1, hit.availableCars());
         assertEquals(4, hit.serviceArea().size(), "the zone ring rides along for the map");
 
-        List<AgencySearchResult> outside = agencySearch.search(LAT + 1.0, LNG + 1.0, null, null);
+        List<AgencySearchResult> outside = agencySearch.search(LAT + 1.0, LNG + 1.0, null, null, null, null);
         assertFalse(outside.stream().anyMatch(a -> a.agencyId().equals(agency.getId())),
                 "pickup outside the polygon must not match");
+    }
+
+    @Test
+    void searchWithDestinationRequiresTheSameZoneToCoverBothEnds() {
+        // Destination inside the zone -> still matches.
+        List<AgencySearchResult> both = agencySearch.search(
+                LAT, LNG, LAT + 0.4, LNG + 0.4, null, null);
+        assertTrue(both.stream().anyMatch(a -> a.agencyId().equals(agency.getId())),
+                "zone covers pickup and drop -> agency can run the trip");
+
+        // Destination outside the zone -> the agency cannot run the trip.
+        List<AgencySearchResult> dropOutside = agencySearch.search(
+                LAT, LNG, LAT + 2.0, LNG, null, null);
+        assertFalse(dropOutside.stream().anyMatch(a -> a.agencyId().equals(agency.getId())),
+                "drop outside the polygon must exclude the agency even though pickup is inside");
+    }
+
+    @Test
+    void pendingAgenciesAreInvisibleToSearch() {
+        agency.setStatus(AgencyStatus.PENDING);
+        agencies.save(agency);
+        List<AgencySearchResult> results = agencySearch.search(LAT, LNG, null, null, null, null);
+        assertFalse(results.stream().anyMatch(a -> a.agencyId().equals(agency.getId())),
+                "an unapproved agency must not appear in search");
+    }
+
+    @Test
+    void routeCoverageCountsAgenciesSpanningBothEnds() {
+        assertEquals(1, serviceAreas.routeCoverage(LAT, LNG, LAT + 0.4, LNG + 0.4),
+                "one agency covers the whole in-zone route");
+        assertEquals(0, serviceAreas.routeCoverage(LAT, LNG, LAT + 2.0, LNG),
+                "nobody covers a route ending outside every zone");
+    }
+
+    @Test
+    void oneWayDropMustBeInsideTheCarsOwnAgencyZone() {
+        // A second agency operates a DIFFERENT patch (around LAT+2) that
+        // covers the drop point — but it isn't the booked car's agency.
+        User owner2 = new User();
+        owner2.setName("Owner2");
+        owner2.setEmail("zone2-" + UUID.randomUUID() + "@test.local");
+        owner2.setPasswordHash("x");
+        users.save(owner2);
+        Agency other = new Agency();
+        other.setName("Other Zone Agency");
+        other.setOwner(owner2);
+        other.setCity("OtherZoneCity-" + UUID.randomUUID());
+        other.setLatitude(LAT + 2.0);
+        other.setLongitude(LNG);
+        other.setStatus(AgencyStatus.ACTIVE);
+        agencies.save(other);
+        serviceAreas.update(other.getId(), List.of(
+                new LatLng(LAT + 1.5, LNG - 0.5),
+                new LatLng(LAT + 1.5, LNG + 0.5),
+                new LatLng(LAT + 2.5, LNG + 0.5),
+                new LatLng(LAT + 2.5, LNG - 0.5)));
+        assertTrue(serviceAreas.isCovered(LAT + 2.0, LNG),
+                "sanity: SOME agency covers the drop point");
+
+        // In-zone drop: fee resolves.
+        assertTrue(oneWayFees.feeFor(agency.getId(), LAT, LNG, LAT + 0.4, LNG + 0.4)
+                .signum() > 0, "in-zone one-way resolves a positive fee");
+
+        // Drop covered only by the OTHER agency: this agency's car can't go there.
+        assertThrows(ResponseStatusException.class,
+                () -> oneWayFees.feeFor(agency.getId(), LAT, LNG, LAT + 2.0, LNG),
+                "a drop outside the car's own agency zone must be rejected");
     }
 
     @Test

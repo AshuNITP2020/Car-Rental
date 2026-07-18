@@ -54,6 +54,6 @@ public class PricingController {
         Double originLat = car.getLatitude() != null ? car.getLatitude() : car.getAgency().getLatitude();
         Double originLng = car.getLongitude() != null ? car.getLongitude() : car.getAgency().getLongitude();
         return pricing.quote(car.getPricePerDay(), from, to,
-                oneWayFees.feeFor(originLat, originLng, dropLat, dropLng));
+                oneWayFees.feeFor(car.getAgency().getId(), originLat, originLng, dropLat, dropLng));
     }
 }

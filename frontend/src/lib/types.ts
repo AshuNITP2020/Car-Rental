@@ -295,6 +295,10 @@ export interface CarResponse {
   regNo: string
   pricePerDay: number
   status: CarStatus
+  /** Where the car is parked; null = at the agency base. */
+  latitude: number | null
+  longitude: number | null
+  currentCity: string | null
 }
 export interface CreateCarRequest {
   make: string

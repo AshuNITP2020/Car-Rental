@@ -5,6 +5,9 @@ import type { AgencySearchResult, CityInfo, LatLng, PlaceSuggestion } from '../.
 export type AgencySearchArgs = {
   lat: number
   lng: number
+  /** Destination — when set, only agencies whose zone covers BOTH ends match. */
+  dlat?: number
+  dlng?: number
   from?: string
   to?: string
 }
@@ -23,6 +26,13 @@ export const tripApi = baseApi.injectEndpoints({
     coversPoint: build.query<{ covered: boolean }, { lat: number; lng: number }>({
       query: (params) => ({ url: '/service-areas/covers', params }),
     }),
+    /** Can anyone run the WHOLE route? (one zone must contain both ends) */
+    coversRoute: build.query<
+      { covered: boolean; agencies: number },
+      { plat: number; plng: number; dlat: number; dlng: number }
+    >({
+      query: (params) => ({ url: '/service-areas/covers-route', params }),
+    }),
     /** Typeahead over any Indian city/town/village (server-proxied geocoder). */
     searchPlaces: build.query<PlaceSuggestion[], string>({
       query: (q) => ({ url: '/geo/search', params: { q } }),
@@ -38,6 +48,7 @@ export const {
   useGetCitiesQuery,
   useSearchAgenciesQuery,
   useCoversPointQuery,
+  useCoversRouteQuery,
   useSearchPlacesQuery,
   useReversePlaceQuery,
 } = tripApi

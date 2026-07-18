@@ -18,7 +18,13 @@ import { useToast } from '../../components/ui/toast'
 import { dayAtDefaultHour, isValidRange } from '../../lib/date'
 import type { LatLng } from '../../lib/types'
 import { cn } from '../../lib/utils'
-import { haversineKm, useCoversPointQuery, useGetCitiesQuery, usePlaceLabel } from './api'
+import {
+  haversineKm,
+  useCoversPointQuery,
+  useCoversRouteQuery,
+  useGetCitiesQuery,
+  usePlaceLabel,
+} from './api'
 import { LocationInput } from './location-input'
 import type { PinKind } from './trip-map'
 
@@ -79,6 +85,14 @@ export function TripSearchPage() {
   const pickupLabel = usePlaceLabel(pickup)
   const dropLabel = usePlaceLabel(drop)
 
+  // With both ends set, can any single agency run the WHOLE route? (an
+  // agency's cars never leave its own zone, so one polygon must cover both)
+  const routeCoverage = useCoversRouteQuery(
+    pickup && drop
+      ? { plat: pickup.lat, plng: pickup.lng, dlat: drop.lat, dlng: drop.lng }
+      : skipToken,
+  )
+
   const center =
     cities[0]?.latitude != null && cities[0]?.longitude != null
       ? { lat: cities[0].latitude, lng: cities[0].longitude }
@@ -129,6 +143,10 @@ export function TripSearchPage() {
     }
     if (pickupCovered.data && !pickupCovered.data.covered) {
       toast.error('No agency operates at your pickup point yet — try a nearby city')
+      return
+    }
+    if (drop && routeCoverage.data && !routeCoverage.data.covered) {
+      toast.error('No agency covers your whole route — try a nearer drop point')
       return
     }
     const from = range.from ? dayAtDefaultHour(range.from) : undefined
@@ -213,6 +231,24 @@ export function TripSearchPage() {
               <p className="flex items-center gap-2 text-sm text-muted-foreground">
                 <MoveRight className="h-4 w-4" /> ~{Math.round(routeKm)} km trip
               </p>
+            )}
+
+            {/* route-level verdict: one agency's zone must span BOTH ends */}
+            {routeCoverage.currentData && (
+              routeCoverage.currentData.covered ? (
+                <p className="flex items-start gap-2 rounded-[var(--radius)] bg-emerald-500/10 p-2.5 text-sm text-emerald-700 dark:text-emerald-300">
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+                  {routeCoverage.currentData.agencies} agenc
+                  {routeCoverage.currentData.agencies === 1 ? 'y covers' : 'ies cover'} your
+                  whole route
+                </p>
+              ) : (
+                <p className="flex items-start gap-2 rounded-[var(--radius)] bg-destructive/10 p-2.5 text-sm text-destructive">
+                  <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  No agency covers this whole route yet — cars can't leave their agency's
+                  operating area. Try a nearer drop point.
+                </p>
+              )
             )}
 
             <Field label="Dates" htmlFor="trip-dates" required>

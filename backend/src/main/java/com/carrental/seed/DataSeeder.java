@@ -32,5 +32,8 @@ public class DataSeeder implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         seedService.seed(customers, agencies, cars);
+        // Wide-area intercity operators; idempotent, runs even when the bulk
+        // seed is skipped (so existing DBs pick them up).
+        seedService.seedCorridors();
     }
 }

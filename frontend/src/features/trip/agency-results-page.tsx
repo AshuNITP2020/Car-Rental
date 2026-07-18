@@ -27,7 +27,18 @@ export function AgencyResultsPage() {
   const to = searchParams.get('to') ?? undefined
   const hasPickup = Number.isFinite(plat) && Number.isFinite(plng) && (plat !== 0 || plng !== 0)
 
-  const results = useSearchAgenciesQuery(hasPickup ? { lat: plat, lng: plng, from, to } : skipToken)
+  const hasDrop = dlat != null && dlng != null
+  const results = useSearchAgenciesQuery(
+    hasPickup
+      ? {
+          lat: plat,
+          lng: plng,
+          ...(hasDrop ? { dlat: dlat!, dlng: dlng! } : {}),
+          from,
+          to,
+        }
+      : skipToken,
+  )
   const pickupLabel = usePlaceLabel(hasPickup ? { lat: plat, lng: plng } : null)
   const dropLabel = usePlaceLabel(dlat != null && dlng != null ? { lat: dlat, lng: dlng } : null)
 
@@ -101,7 +112,9 @@ export function AgencyResultsPage() {
       <h1 className="text-lg font-semibold">
         {results.isFetching
           ? 'Finding agencies…'
-          : `${agencies.length} agenc${agencies.length === 1 ? 'y' : 'ies'} operate at your pickup point`}
+          : `${agencies.length} agenc${agencies.length === 1 ? 'y' : 'ies'} can run ${
+              hasDrop ? 'your whole route' : 'trips from your pickup point'
+            }`}
       </h1>
 
       {results.isLoading ? (
@@ -115,8 +128,16 @@ export function AgencyResultsPage() {
       ) : agencies.length === 0 ? (
         <EmptyState
           icon={CarFront}
-          title="No agency operates at this point for these dates"
-          description="Move your pickup pin toward a city, or try different dates."
+          title={
+            hasDrop
+              ? 'No agency covers your whole route'
+              : 'No agency operates at this point for these dates'
+          }
+          description={
+            hasDrop
+              ? "An agency's cars never leave its operating area — no single zone contains both your pickup and drop. Try a nearer drop point or different dates."
+              : 'Move your pickup pin toward a city, or try different dates.'
+          }
         />
       ) : (
         <div className="space-y-3">
