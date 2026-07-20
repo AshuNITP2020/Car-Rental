@@ -14,6 +14,10 @@ import type {
 export type SearchParams = {
   /** Restrict to one agency's fleet (its public profile page). */
   agencyId?: number
+  /** Car type (e.g. "SUV", case-insensitive) — how customers filter. */
+  category?: string
+  /** Minimum passenger seats. */
+  minSeats?: number
   from?: string
   to?: string
   page?: number

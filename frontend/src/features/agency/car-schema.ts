@@ -12,6 +12,10 @@ export const carSchema = z.object({
   make: z.string().min(1, 'Required').max(60, 'Too long'),
   model: z.string().min(1, 'Required').max(60, 'Too long'),
   category: z.string().min(1, 'Required').max(40, 'Too long'),
+  seats: z
+    .string()
+    .min(1, 'Required')
+    .refine((v) => Number(v) >= 1 && Number(v) <= 12, '1–12'),
   regNo: z.string().min(1, 'Required').max(20, 'Too long'),
   pricePerDay: z
     .string()
@@ -28,6 +32,7 @@ export function toCreateCarRequest(v: CarFormValues): CreateCarRequest {
     make: v.make.trim(),
     model: v.model.trim(),
     category: v.category.trim(),
+    seats: Number(v.seats),
     regNo: v.regNo.trim(),
     pricePerDay: Number(v.pricePerDay),
     latitude: v.latitude ? Number(v.latitude) : undefined,

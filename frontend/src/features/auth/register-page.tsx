@@ -10,7 +10,26 @@ import { errorMessage, fieldErrors } from '../../lib/errors'
 import { AuthLayout } from './auth-layout'
 import { registerSchema, type RegisterValues } from './schemas'
 
-export function RegisterPage() {
+/** Portal-specific framing over the same account registration. */
+const PORTALS = {
+  customer: {
+    title: 'Create your account',
+    subtitle: 'Rent a car anywhere an agency operates',
+    badge: undefined as string | undefined,
+    loginPath: '/login',
+    home: '/',
+  },
+  agency: {
+    title: 'Register your agency',
+    subtitle: 'Step 1 of 2 — create the account that will own your agency',
+    badge: 'for Agencies',
+    loginPath: '/agency/login',
+    home: '/agency',
+  },
+}
+
+export function RegisterPage({ portal = 'customer' }: { portal?: keyof typeof PORTALS }) {
+  const cfg = PORTALS[portal]
   const { register: registerUser, isAuthenticated } = useAuth()
   const toast = useToast()
   const navigate = useNavigate()
@@ -24,7 +43,7 @@ export function RegisterPage() {
   })
   const { errors, isSubmitting } = form.formState
 
-  if (isAuthenticated) return <Navigate to="/" replace />
+  if (isAuthenticated) return <Navigate to={cfg.home} replace />
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
@@ -35,9 +54,10 @@ export function RegisterPage() {
         phone: values.phone?.trim() ? values.phone.trim() : undefined,
       })
       // Account creation does NOT sign the user in — hand off to sign-in
-      // with the email prefilled.
+      // with the email prefilled. (Agency portal: signing in then leads to
+      // the agency onboarding wizard.)
       toast.success('Account created — please sign in')
-      navigate('/login', { replace: true, state: { email: values.email, justRegistered: true } })
+      navigate(cfg.loginPath, { replace: true, state: { email: values.email, justRegistered: true } })
     } catch (e) {
       for (const [field, message] of Object.entries(fieldErrors(e))) {
         form.setError(field as keyof RegisterValues, { message })
@@ -48,12 +68,13 @@ export function RegisterPage() {
 
   return (
     <AuthLayout
-      title="Create your account"
-      subtitle="Rent a car, or list your fleet as an agency"
+      title={cfg.title}
+      subtitle={cfg.subtitle}
+      badge={cfg.badge}
       footer={
         <>
           Already have an account?{' '}
-          <Link to="/login" className="font-medium text-primary hover:underline">
+          <Link to={cfg.loginPath} className="font-medium text-primary hover:underline">
             Sign in
           </Link>
         </>

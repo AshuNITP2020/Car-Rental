@@ -39,9 +39,10 @@ export function DateRangePicker({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         className={cn(
-          'flex h-10 w-full items-center gap-2 rounded-[var(--radius)] border bg-card px-3 text-left text-sm',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-          invalid ? 'border-destructive' : 'border-input',
+          'flex h-12 w-full items-center gap-2 rounded-[var(--radius)] border-0 bg-muted px-4 text-left text-sm',
+          'transition-[background-color,box-shadow] duration-200 hover:bg-muted/80',
+          'focus-visible:outline-none focus-visible:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring',
+          invalid && 'ring-2 ring-destructive',
           className,
         )}
       >

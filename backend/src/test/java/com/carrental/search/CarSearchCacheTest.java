@@ -90,7 +90,7 @@ class CarSearchCacheTest {
     /** Agency-only filter (from == null) -> cacheable. The test's own agency id
      *  makes the cache key unique per run (Redis writes aren't rolled back). */
     private CarSearchCriteria cacheable() {
-        return new CarSearchCriteria(agency.getId(), null, null, 0, 20);
+        return new CarSearchCriteria(agency.getId(), null, null, null, null, 0, 20);
     }
 
     @Test
@@ -121,7 +121,7 @@ class CarSearchCacheTest {
 
         // A real car write must invalidate the region (@CacheEvict on CarService).
         carService.create(agency.getId(), new CreateCarRequest(
-                "Tata", "Nexon", "SUV", "REG-" + UUID.randomUUID().toString().substring(0, 8),
+                "Tata", "Nexon", "SUV", 7, "REG-" + UUID.randomUUID().toString().substring(0, 8),
                 new BigDecimal("2500"), null, null));
 
         assertNull(cache().get(c.cacheKey()), "car write should have evicted the cache");
@@ -131,7 +131,7 @@ class CarSearchCacheTest {
     void availabilitySearch_isNotCached() {
         // from/to present -> @Cacheable condition is false -> never cached.
         CarSearchCriteria c = new CarSearchCriteria(
-                agency.getId(), base.plusDays(1), base.plusDays(2), 0, 20);
+                agency.getId(), null, null, base.plusDays(1), base.plusDays(2), 0, 20);
 
         search.search(c);
 

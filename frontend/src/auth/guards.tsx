@@ -10,13 +10,16 @@ function FullPageLoading() {
   )
 }
 
-/** Requires a valid session; otherwise bounces to /login (remembering origin). */
+/** Requires a valid session; otherwise bounces to the right portal's sign-in
+ *  (agency paths go to the agency door), remembering where they were headed. */
 export function RequireAuth() {
   const { status } = useAuth()
   const location = useLocation()
   if (status === 'loading') return <FullPageLoading />
-  if (status === 'unauthenticated')
-    return <Navigate to="/login" replace state={{ from: location }} />
+  if (status === 'unauthenticated') {
+    const door = location.pathname.startsWith('/agency') ? '/agency/login' : '/login'
+    return <Navigate to={door} replace state={{ from: location }} />
+  }
   return <Outlet />
 }
 

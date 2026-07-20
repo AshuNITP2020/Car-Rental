@@ -8,9 +8,13 @@ public record CarResponse(
         String make,
         String model,
         String category,
+        Integer seats,
         String regNo,
         BigDecimal pricePerDay,
-        String status
+        String status,
+        Double latitude,
+        Double longitude,
+        String currentCity
 ) {
     public static CarResponse from(Car car) {
         return new CarResponse(
@@ -19,8 +23,12 @@ public record CarResponse(
                 car.getMake(),
                 car.getModel(),
                 car.getCategory(),
+                car.getSeats(),
                 car.getRegNo(),
                 car.getPricePerDay(),
-                car.getStatus().name());
+                car.getStatus().name(),
+                car.getLatitude(),
+                car.getLongitude(),
+                car.getCurrentCity());
     }
 }

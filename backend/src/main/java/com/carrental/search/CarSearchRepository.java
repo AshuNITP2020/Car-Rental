@@ -30,10 +30,14 @@ import java.util.Optional;
  */
 public interface CarSearchRepository extends Repository<Car, Long> {
 
-    /** Shared filter block — everything except the availability window. */
+    /** Shared filter block — everything except the availability window.
+     *  {@code :category} arrives pre-uppercased (see CarSearchCriteria):
+     *  {@code upper(:param)} on a null String makes Hibernate bind bytea. */
     String FILTERS = """
             c.status = :available
               and (:agencyId is null or c.agency.id = :agencyId)
+              and (:category is null or upper(c.category) = :category)
+              and (:minSeats is null or c.seats >= :minSeats)
             """;
 
     @EntityGraph(attributePaths = "agency")
@@ -41,6 +45,8 @@ public interface CarSearchRepository extends Repository<Car, Long> {
     Page<Car> search(
             @Param("available") CarStatus available,
             @Param("agencyId") Long agencyId,
+            @Param("category") String category,
+            @Param("minSeats") Integer minSeats,
             Pageable pageable);
 
     @EntityGraph(attributePaths = "agency")
@@ -50,6 +56,8 @@ public interface CarSearchRepository extends Repository<Car, Long> {
     Page<Car> searchAvailableBetween(
             @Param("available") CarStatus available,
             @Param("agencyId") Long agencyId,
+            @Param("category") String category,
+            @Param("minSeats") Integer minSeats,
             @Param("from") OffsetDateTime from,
             @Param("to") OffsetDateTime to,
             @Param("blocking") Collection<BookingStatus> blocking,

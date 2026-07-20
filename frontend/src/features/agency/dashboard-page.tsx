@@ -12,11 +12,12 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { Alert } from '../../components/ui/alert'
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
 import { EmptyState } from '../../components/ui/empty-state'
 import { LoadingState } from '../../components/ui/spinner'
 import { formatMoney, humanizeStatus } from '../../lib/utils'
-import { useGetAgencyDashboardQuery } from './api'
+import { useGetAgencyDashboardQuery, useGetMyAgencyQuery } from './api'
 
 const CHART = { bookings: '#6366f1', revenue: '#10b981' }
 
@@ -36,6 +37,7 @@ const STATUS_COLOR: Record<string, string> = {
 
 export function AgencyDashboardPage() {
   const { data, isLoading, isError } = useGetAgencyDashboardQuery()
+  const { data: agency } = useGetMyAgencyQuery()
 
   if (isLoading) return <LoadingState />
   if (isError || !data) return <EmptyState title="Couldn’t load the dashboard" />
@@ -48,6 +50,19 @@ export function AgencyDashboardPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+
+      {agency?.status === 'PENDING' && (
+        <Alert variant="warning" title="Awaiting platform approval">
+          Your agency isn’t visible to customers yet. It goes live once the
+          platform approves it — make sure your operating area is drawn and at
+          least one car is listed.
+        </Alert>
+      )}
+      {agency?.status === 'SUSPENDED' && (
+        <Alert variant="error" title="Agency suspended">
+          Your agency is currently hidden from customers. Contact platform support.
+        </Alert>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat

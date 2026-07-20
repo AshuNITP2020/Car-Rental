@@ -6,6 +6,8 @@ import com.carrental.agency.AgencyMemberRepository;
 import com.carrental.agency.AgencyRepository;
 import com.carrental.agency.AgencyRole;
 import com.carrental.agency.AgencyStatus;
+import com.carrental.agency.ServiceAreaService;
+import com.carrental.agency.dto.LatLng;
 import com.carrental.car.Car;
 import com.carrental.car.CarRepository;
 import com.carrental.car.CarStatus;
@@ -48,14 +50,17 @@ public class SeedService {
     private final AgencyMemberRepository members;
     private final CarRepository cars;
     private final PasswordEncoder passwordEncoder;
+    private final ServiceAreaService serviceAreas;
 
     public SeedService(UserRepository users, AgencyRepository agencies, AgencyMemberRepository members,
-                       CarRepository cars, PasswordEncoder passwordEncoder) {
+                       CarRepository cars, PasswordEncoder passwordEncoder,
+                       ServiceAreaService serviceAreas) {
         this.users = users;
         this.agencies = agencies;
         this.members = members;
         this.cars = cars;
         this.passwordEncoder = passwordEncoder;
+        this.serviceAreas = serviceAreas;
     }
 
     @Transactional
@@ -117,6 +122,87 @@ public class SeedService {
                 numAgencies, totalCars, System.currentTimeMillis() - start);
     }
 
+    /** A wide-area operator whose single zone spans several cities. */
+    private record Corridor(String name, String baseCity, double lat, double lng,
+                            double[][] ring, double[][] carSpots) {
+    }
+
+    /**
+     * Corridor operators — realistic intercity agencies whose one polygon
+     * covers BOTH ends of popular routes (Mumbai→Pune, Delhi→Jaipur/Agra,
+     * Bengaluru→Chennai). Without them every cross-city search would be
+     * legitimately empty, since normal agencies operate one metro each.
+     * Idempotent: skipped when the agency already exists.
+     */
+    @Transactional
+    public void seedCorridors() {
+        Corridor[] corridors = {
+                new Corridor("Mumbai-Pune Expressway Rentals", "Mumbai", 19.0760, 72.8777,
+                        new double[][]{{19.4, 72.6}, {19.4, 74.2}, {18.2, 74.2}, {18.2, 72.6}},
+                        new double[][]{{19.0760, 72.8777}, {18.5204, 73.8567}}),
+                new Corridor("Delhi NCR Roamers", "Delhi", 28.6139, 77.2090,
+                        new double[][]{{28.95, 76.70}, {28.95, 77.75}, {28.15, 77.75}, {28.15, 76.70}},
+                        new double[][]{{28.6139, 77.2090}, {28.4595, 77.0266}}),
+                new Corridor("Golden Triangle Drives", "Delhi", 28.6139, 77.2090,
+                        new double[][]{{29.0, 76.9}, {28.8, 77.7}, {27.3, 78.5},
+                                {26.7, 78.3}, {26.4, 75.6}, {27.2, 75.3}},
+                        new double[][]{{28.6139, 77.2090}, {26.9124, 75.7873}, {27.1767, 78.0081}}),
+                new Corridor("Deccan Corridor Cars", "Bengaluru", 12.9716, 77.5946,
+                        new double[][]{{13.45, 77.30}, {13.45, 80.55}, {12.55, 80.55}, {12.55, 77.30}},
+                        new double[][]{{12.9716, 77.5946}, {13.0827, 80.2707}}),
+        };
+
+        Faker faker = new Faker();
+        String pwHash = passwordEncoder.encode("password123");
+        int created = 0;
+        for (Corridor c : corridors) {
+            if (agencies.existsByName(c.name())) {
+                continue;
+            }
+            User owner = users.save(newUser(faker, pwHash,
+                    "corridor" + (users.count() + 1)));
+            Agency agency = new Agency();
+            agency.setName(c.name());
+            agency.setOwner(owner);
+            agency.setCity(c.baseCity());
+            agency.setLatitude(c.lat());
+            agency.setLongitude(c.lng());
+            agency.setGstNo("GST" + faker.number().digits(12));
+            agency.setStatus(AgencyStatus.ACTIVE);
+            agencies.save(agency);
+            members.save(member(owner, agency, AgencyRole.ADMIN));
+
+            serviceAreas.updateCustom(agency.getId(),
+                    java.util.Arrays.stream(c.ring())
+                            .map(p -> new LatLng(p[0], p[1]))
+                            .toList());
+
+            // 3 cars parked at each city the corridor serves.
+            List<Car> fleet = new ArrayList<>();
+            for (int s = 0; s < c.carSpots().length; s++) {
+                for (int i = 0; i < 3; i++) {
+                    Car car = new Car();
+                    car.setAgency(agency);
+                    car.setMake(faker.vehicle().manufacturer());
+                    car.setModel(faker.vehicle().model());
+                    car.setCategory(CATEGORIES[faker.random().nextInt(CATEGORIES.length)]);
+                    car.setRegNo(String.format("CR%02d-%d%d", created, s, i));
+                    car.setSeats(seatsFor(car.getCategory()));
+                    car.setPricePerDay(BigDecimal.valueOf(faker.number().numberBetween(1200, 6000)));
+                    car.setLatitude(c.carSpots()[s][0]);
+                    car.setLongitude(c.carSpots()[s][1]);
+                    car.setStatus(CarStatus.AVAILABLE);
+                    fleet.add(car);
+                }
+            }
+            cars.saveAll(fleet);
+            created++;
+        }
+        if (created > 0) {
+            log.info("Seeded {} corridor agencies (intercity zones).", created);
+        }
+    }
+
     private User newUser(Faker faker, String pwHash, String tag) {
         User u = new User();
         u.setName(faker.name().fullName());
@@ -134,12 +220,22 @@ public class SeedService {
         return m;
     }
 
+    /** Seats implied by category — what customers filter by. */
+    private static int seatsFor(String category) {
+        return switch (category) {
+            case "HATCHBACK" -> 4;
+            case "SUV", "MPV" -> 7;
+            default -> 5;   // SEDAN, LUXURY
+        };
+    }
+
     private Car newCar(Faker faker, Agency agency, String[] city, int agencyIdx, int carIdx) {
         Car car = new Car();
         car.setAgency(agency);
         car.setMake(faker.vehicle().manufacturer());
         car.setModel(faker.vehicle().model());
         car.setCategory(CATEGORIES[faker.random().nextInt(CATEGORIES.length)]);
+        car.setSeats(seatsFor(car.getCategory()));
         car.setRegNo(String.format("SD%04d-%04d", agencyIdx, carIdx));   // unique per agency
         car.setPricePerDay(BigDecimal.valueOf(faker.number().numberBetween(800, 8000)));
         car.setLatitude(Double.parseDouble(city[1]));

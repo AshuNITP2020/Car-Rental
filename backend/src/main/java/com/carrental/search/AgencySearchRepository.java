@@ -43,8 +43,21 @@ public interface AgencySearchRepository extends Repository<Car, Long> {
     /** The customer's pickup pin as a WGS84 geography point. */
     String PICKUP = "ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography";
 
+    /**
+     * The trip's destination, when given. Cars never leave their agency's
+     * zone, so the SAME polygon must cover the drop too. Casts keep the
+     * parameters typed when they are null (round trip / no destination).
+     */
+    String DROP_OK = "(cast(:dlat as double precision) is null or ST_Covers(a.service_area, "
+            + "ST_SetSRID(ST_MakePoint(cast(:dlng as double precision), "
+            + "cast(:dlat as double precision)), 4326)::geography))";
+
     /** Where a car actually is; no coordinates -> parked at the agency base. */
     String CAR_POS = "coalesce(c.geog, ST_SetSRID(ST_MakePoint(a.longitude, a.latitude), 4326)::geography)";
+
+    /** Customer's car-type/seats filters — cars that don't fit don't count. */
+    String CAR_FITS = "(cast(:carType as text) is null or upper(c.category) = upper(cast(:carType as text)))"
+            + " and (cast(:minSeats as integer) is null or c.seats >= cast(:minSeats as integer))";
 
     String AGG_SELECT = "select a.id as \"agencyId\", a.name as \"name\", a.city as \"city\", "
             + "a.latitude as \"latitude\", a.longitude as \"longitude\", "
@@ -54,18 +67,25 @@ public interface AgencySearchRepository extends Repository<Car, Long> {
             + "ST_AsGeoJSON(a.service_area) as \"serviceAreaGeoJson\" "
             + "from agency a join car c on c.agency_id = a.id "
             + "where a.service_area is not null "
+            + "  and a.status = 'ACTIVE' "
             + "  and ST_Covers(a.service_area, " + PICKUP + ") "
+            + "  and " + DROP_OK
             + "  and c.status = 'AVAILABLE' "
+            + "  and " + CAR_FITS
             + "  and ST_Covers(a.service_area, " + CAR_POS + ") ";
 
     String AGG_GROUP = " group by a.id, a.name, a.city, a.latitude, a.longitude, a.service_area "
             + "order by \"distanceKm\" asc nulls last";
 
-    /** Agencies whose zone covers the pickup pin (no date window). */
+    /** Agencies whose zone covers the whole trip (no date window). */
     @Query(value = AGG_SELECT + AGG_GROUP, nativeQuery = true)
     List<AgencyAggRow> agenciesCovering(
             @Param("lat") double lat,
-            @Param("lng") double lng);
+            @Param("lng") double lng,
+            @Param("dlat") Double dropLat,
+            @Param("dlng") Double dropLng,
+            @Param("carType") String carType,
+            @Param("minSeats") Integer minSeats);
 
     /** Same, but only counting cars actually free for the requested window. */
     @Query(value = AGG_SELECT
@@ -75,6 +95,10 @@ public interface AgencySearchRepository extends Repository<Car, Long> {
     List<AgencyAggRow> agenciesCoveringBetween(
             @Param("lat") double lat,
             @Param("lng") double lng,
+            @Param("dlat") Double dropLat,
+            @Param("dlng") Double dropLng,
+            @Param("carType") String carType,
+            @Param("minSeats") Integer minSeats,
             @Param("from") OffsetDateTime from,
             @Param("to") OffsetDateTime to,
             @Param("blocking") Collection<String> blocking);

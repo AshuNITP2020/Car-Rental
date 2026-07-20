@@ -12,8 +12,8 @@ import java.math.BigDecimal;
  * Resolves the one-way relocation fee between the car's location and the
  * customer's drop pin (great-circle distance × ₹/km). Shared by the quote
  * endpoint and booking creation so the customer is always quoted exactly what
- * the booking will charge. The drop pin must fall inside SOME agency's
- * operating area — we don't strand cars where nobody operates.
+ * the booking will charge. The drop pin must fall inside THE CAR'S OWN
+ * agency's operating area — an agency's cars never leave its zone.
  */
 @Service
 public class OneWayFeeService {
@@ -29,8 +29,9 @@ public class OneWayFeeService {
         this.serviceAreas = serviceAreas;
     }
 
-    /** Fee for relocating a car at (originLat,originLng) to the drop pin. */
-    public BigDecimal feeFor(Double originLat, Double originLng, Double dropLat, Double dropLng) {
+    /** Fee for relocating {@code agencyId}'s car at (originLat,originLng) to the drop pin. */
+    public BigDecimal feeFor(Long agencyId, Double originLat, Double originLng,
+                             Double dropLat, Double dropLng) {
         if (dropLat == null || dropLng == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "'dropLat' and 'dropLng' are required for a one-way trip");
@@ -42,9 +43,9 @@ public class OneWayFeeService {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "This car has no location configured — one-way is unavailable");
         }
-        if (!serviceAreas.isCovered(dropLat, dropLng)) {
+        if (!serviceAreas.isCoveredBy(agencyId, dropLat, dropLng)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "We don't operate at that drop-off point yet");
+                    "This agency doesn't operate at that drop-off point — its cars stay inside its service area");
         }
         double km = CityService.haversineKm(originLat, originLng, dropLat, dropLng);
         if (km < MIN_DISTANCE_KM) {

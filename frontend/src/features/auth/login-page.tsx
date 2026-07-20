@@ -18,12 +18,31 @@ interface LocationState {
   justRegistered?: boolean
 }
 
-export function LoginPage() {
+/** The two doors into the same auth: one identity, portal-specific framing. */
+const PORTALS = {
+  customer: {
+    title: 'Welcome back',
+    subtitle: 'Sign in to plan your next trip',
+    badge: undefined as string | undefined,
+    home: '/',
+    registerPath: '/register',
+  },
+  agency: {
+    title: 'Agency sign in',
+    subtitle: 'Manage your fleet, bookings and operating area',
+    badge: 'for Agencies',
+    home: '/agency',
+    registerPath: '/agency/register',
+  },
+}
+
+export function LoginPage({ portal = 'customer' }: { portal?: keyof typeof PORTALS }) {
+  const cfg = PORTALS[portal]
   const { login, isAuthenticated } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const state = (location.state as LocationState | null) ?? {}
-  const from = state.from?.pathname ?? '/'
+  const from = state.from?.pathname ?? cfg.home
 
   const [authError, setAuthError] = useState<SerializedApiError | null>(null)
 
@@ -52,15 +71,29 @@ export function LoginPage() {
 
   return (
     <AuthLayout
-      title="Welcome back"
-      subtitle="Sign in to plan your next trip"
+      title={cfg.title}
+      subtitle={cfg.subtitle}
+      badge={cfg.badge}
       footer={
-        <>
-          New here?{' '}
-          <Link to="/register" className="font-medium text-primary hover:underline">
-            Create an account
-          </Link>
-        </>
+        <div className="space-y-1">
+          <div>
+            New here?{' '}
+            <Link to={cfg.registerPath} className="font-medium text-primary hover:underline">
+              {portal === 'agency' ? 'Register your agency' : 'Create an account'}
+            </Link>
+          </div>
+          <div>
+            {portal === 'agency' ? (
+              <Link to="/login" className="text-xs hover:underline">
+                Looking to rent a car? Customer sign in →
+              </Link>
+            ) : (
+              <Link to="/agency/login" className="text-xs hover:underline">
+                Run a rental agency? Agency sign in →
+              </Link>
+            )}
+          </div>
+        </div>
       }
     >
       <form onSubmit={onSubmit} className="space-y-4" noValidate>
@@ -74,7 +107,7 @@ export function LoginPage() {
               <>
                 This email isn’t registered yet.{' '}
                 <Link
-                  to="/register"
+                  to={cfg.registerPath}
                   state={{ email: form.getValues('email') }}
                   className="font-medium underline"
                 >

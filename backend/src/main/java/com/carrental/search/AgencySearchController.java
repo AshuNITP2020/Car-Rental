@@ -11,10 +11,11 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 /**
- * Trip-first search: "which agencies operate at my pickup pin for my dates?"
- *   GET /api/agencies/search?lat=19.07&lng=72.87&from=…&to=…
- * from/to are optional but must come as a pair; with a window only cars that
- * are actually free then are counted. Requires authentication like car search.
+ * Trip-first search: "which agencies can run my trip, for my dates?"
+ *   GET /api/agencies/search?lat=19.07&lng=72.87[&dlat=…&dlng=…][&from=…&to=…]
+ * With a destination, only agencies whose single zone covers BOTH ends match —
+ * an agency's cars never leave its own operating area. from/to are optional
+ * but must come as a pair; with a window only cars actually free then count.
  */
 @RestController
 public class AgencySearchController {
@@ -29,10 +30,19 @@ public class AgencySearchController {
     public List<AgencySearchResult> search(
             @RequestParam double lat,
             @RequestParam double lng,
+            @RequestParam(required = false) Double dlat,
+            @RequestParam(required = false) Double dlng,
+            @RequestParam(required = false) String carType,
+            @RequestParam(required = false) Integer seats,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to) {
-        if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Coordinates out of range");
+        validateCoords(lat, lng);
+        if ((dlat == null) != (dlng == null)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Provide both 'dlat' and 'dlng', or neither");
+        }
+        if (dlat != null) {
+            validateCoords(dlat, dlng);
         }
         if ((from == null) != (to == null)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
@@ -41,6 +51,13 @@ public class AgencySearchController {
         if (from != null && !from.isBefore(to)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "'from' must be before 'to'");
         }
-        return search.search(lat, lng, from, to);
+        String type = carType != null && !carType.isBlank() ? carType.trim() : null;
+        return search.search(lat, lng, dlat, dlng, type, seats, from, to);
+    }
+
+    private static void validateCoords(double lat, double lng) {
+        if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Coordinates out of range");
+        }
     }
 }

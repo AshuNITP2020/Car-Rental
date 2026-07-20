@@ -57,6 +57,7 @@ export const baseApi = createApi({
     'KycDocs',
     'AdminUsers',
     'AdminDocs',
+    'AdminAgencies',
   ],
   endpoints: () => ({}),
 })

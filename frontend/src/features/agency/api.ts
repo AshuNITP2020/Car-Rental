@@ -7,9 +7,11 @@ import type {
   CarImageResponse,
   CarResponse,
   CreateCarRequest,
+  CityArea,
   DocumentResponse,
   DocumentType,
   LatLng,
+  ServiceAreaInfo,
   UpdateCarRequest,
 } from '../../lib/types'
 
@@ -29,13 +31,22 @@ export const agencyApi = baseApi.injectEndpoints({
       invalidatesTags: ['Agency'],
     }),
 
-    // ── Operating area (the polygon trip searches match against) ──────────
-    getMyServiceArea: build.query<{ polygon: LatLng[] | null }, void>({
+    // ── Operating area (the geometry trip searches match against) ─────────
+    getMyServiceArea: build.query<ServiceAreaInfo, void>({
       query: () => ({ url: '/agencies/me/service-area' }),
       providesTags: ['Agency'],
     }),
-    updateServiceArea: build.mutation<{ polygon: LatLng[] }, { polygon: LatLng[] }>({
+    /** CUSTOM mode: a hand-drawn polygon. */
+    updateServiceArea: build.mutation<ServiceAreaInfo, { polygon: LatLng[] }>({
       query: (body) => ({ url: '/agencies/me/service-area', method: 'PUT', body }),
+      invalidatesTags: ['Agency'],
+    }),
+    /** CITIES mode: circles around picked cities (scattered parts allowed). */
+    updateServiceAreaCities: build.mutation<
+      ServiceAreaInfo,
+      { cities: CityArea[]; radiusKm: number }
+    >({
+      query: (body) => ({ url: '/agencies/me/service-area/cities', method: 'PUT', body }),
       invalidatesTags: ['Agency'],
     }),
 
@@ -168,6 +179,7 @@ export const {
   useUpdateAgencyMutation,
   useGetMyServiceAreaQuery,
   useUpdateServiceAreaMutation,
+  useUpdateServiceAreaCitiesMutation,
   useGetAgencyDashboardQuery,
   useGetAgencyCarsQuery,
   useGetAgencyCarQuery,

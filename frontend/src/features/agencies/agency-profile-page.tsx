@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, BadgeCheck, Building2, CalendarRange, MapPin } from 'lucide-react'
+import { useParams, useSearchParams } from 'react-router-dom'
+import { BadgeCheck, Building2, CalendarRange, MapPin } from 'lucide-react'
+import { BackButton } from '../../components/ui/back-button'
 import { EmptyState } from '../../components/ui/empty-state'
 import { Pagination } from '../../components/ui/pagination'
 import { StarRating } from '../../components/ui/rating'
@@ -24,12 +25,22 @@ export function AgencyProfilePage() {
   const [searchParams] = useSearchParams()
   const from = searchParams.get('from') ?? undefined
   const to = searchParams.get('to') ?? undefined
+  const carType = searchParams.get('carType') ?? undefined
+  const seats = searchParams.get('seats') ? Number(searchParams.get('seats')) : undefined
   const hasWindow = !!from && !!to
   const tripSearch = searchParams.toString() ? `?${searchParams.toString()}` : undefined
 
   const { data: agency, isLoading } = useGetAgencyProfileQuery(agencyId)
   const { data: rating } = useGetAgencyRatingQuery(agencyId)
-  const fleet = useSearchCarsQuery({ agencyId, from, to, page, size: PAGE_SIZE })
+  const fleet = useSearchCarsQuery({
+    agencyId,
+    category: carType,
+    minSeats: seats,
+    from,
+    to,
+    page,
+    size: PAGE_SIZE,
+  })
 
   if (isLoading) return <LoadingState />
   if (!agency) return <EmptyState icon={Building2} title="Agency not found" />
@@ -38,12 +49,7 @@ export function AgencyProfilePage() {
 
   return (
     <div className="space-y-6">
-      <Link
-        to="/"
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="h-4 w-4" /> Back to home
-      </Link>
+      <BackButton />
 
       {/* ── Profile header ────────────────────────────────────────────────── */}
       <section className="flex flex-wrap items-center gap-5 rounded-3xl border border-border bg-card p-6 shadow-sm">

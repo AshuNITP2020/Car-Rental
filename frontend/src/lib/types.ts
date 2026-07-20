@@ -100,6 +100,8 @@ export interface CarSearchResult {
   make: string
   model: string
   category: string
+  /** Passenger seats — with category, what customers actually pick by. */
+  seats: number
   pricePerDay: number
   latitude: number | null
   longitude: number | null
@@ -175,8 +177,24 @@ export interface AgencySearchResult {
   reviewCount: number
   /** Agency base -> pickup pin, km. */
   distanceKm: number | null
-  /** The operating polygon (unclosed ring) — drawn on the results map. */
-  serviceArea: LatLng[] | null
+  /** Operating-area outer ring(s), one per part (areas may be scattered). */
+  serviceArea: LatLng[][] | null
+}
+
+/** One city an agency serves (cities-mode operating area). */
+export interface CityArea {
+  name: string
+  lat: number
+  lng: number
+}
+
+/** The agency's operating area + how it was defined (all empty when unset). */
+export interface ServiceAreaInfo {
+  mode: 'CITIES' | 'CUSTOM' | null
+  radiusKm: number | null
+  cities: CityArea[]
+  /** The actual geometry: one outer ring per part. */
+  polygons: LatLng[][]
 }
 
 // ── Bookings & payments ────────────────────────────────────────────────────────
@@ -293,13 +311,19 @@ export interface CarResponse {
   model: string
   category: string
   regNo: string
+  seats: number
   pricePerDay: number
   status: CarStatus
+  /** Where the car is parked; null = at the agency base. */
+  latitude: number | null
+  longitude: number | null
+  currentCity: string | null
 }
 export interface CreateCarRequest {
   make: string
   model: string
   category: string
+  seats: number
   regNo: string
   pricePerDay: number
   latitude?: number

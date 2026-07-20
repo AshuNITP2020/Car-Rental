@@ -29,6 +29,9 @@ const TripSearchPage = lazy(() =>
 const AgencyResultsPage = lazy(() =>
   import('../features/trip/agency-results-page').then((m) => ({ default: m.AgencyResultsPage })),
 )
+const DestinationsPage = lazy(() =>
+  import('../features/trip/destinations-page').then((m) => ({ default: m.DestinationsPage })),
+)
 const AgencyOnboardPage = lazy(() =>
   import('../features/agency/onboard-page').then((m) => ({ default: m.AgencyOnboardPage })),
 )
@@ -46,6 +49,9 @@ const AgencySettingsPage = lazy(() =>
   import('../features/agency/settings-page').then((m) => ({ default: m.AgencySettingsPage })),
 )
 const AdminUsersPage = lazy(() => import('../features/admin/users-page').then((m) => ({ default: m.AdminUsersPage })))
+const AdminAgenciesPage = lazy(() =>
+  import('../features/admin/agencies-page').then((m) => ({ default: m.AdminAgenciesPage })),
+)
 const AdminDocumentsPage = lazy(() =>
   import('../features/admin/documents-page').then((m) => ({ default: m.AdminDocumentsPage })),
 )
@@ -65,6 +71,17 @@ export const router = createBrowserRouter([
     element: <Boundary><RegisterPage /></Boundary>,
     errorElement: <RouteErrorPage />,
   },
+  // The agency portal: same identity/auth API, its own branded doors.
+  {
+    path: '/agency/login',
+    element: <Boundary><LoginPage portal="agency" /></Boundary>,
+    errorElement: <RouteErrorPage />,
+  },
+  {
+    path: '/agency/register',
+    element: <Boundary><RegisterPage portal="agency" /></Boundary>,
+    errorElement: <RouteErrorPage />,
+  },
   {
     element: <RequireAuth />,
     errorElement: <RouteErrorPage />,
@@ -76,6 +93,7 @@ export const router = createBrowserRouter([
         children: [
           // ── Customer: trip-first flow (pickup + drop + dates is all it takes) ──
           { index: true, element: <TripSearchPage /> },
+          { path: 'destinations', element: <DestinationsPage /> },
           { path: 'agencies', element: <AgencyResultsPage /> },
           { path: 'cars/:id', element: <CarDetailPage /> },
           { path: 'agencies/:id', element: <AgencyProfilePage /> },
@@ -106,7 +124,8 @@ export const router = createBrowserRouter([
             path: 'admin',
             element: <RequireAdmin />,
             children: [
-              { index: true, element: <Navigate to="/admin/users" replace /> },
+              { index: true, element: <Navigate to="/admin/agencies" replace /> },
+              { path: 'agencies', element: <AdminAgenciesPage /> },
               { path: 'users', element: <AdminUsersPage /> },
               { path: 'documents', element: <AdminDocumentsPage /> },
             ],

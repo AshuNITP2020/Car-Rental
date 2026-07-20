@@ -57,7 +57,7 @@ public class SecurityConfig {
                         // keeps the rules above / default-deny below.
                         .requestMatchers(HttpMethod.GET,
                                 "/", "/index.html", "/assets/**", "/favicon.svg",
-                                "/login", "/register", "/trips", "/trips/**", "/account",
+                                "/login", "/register", "/destinations", "/trips", "/trips/**", "/account",
                                 "/cars/**", "/agencies/**", "/agency", "/agency/**",
                                 "/admin", "/admin/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("PLATFORM_ADMIN")
