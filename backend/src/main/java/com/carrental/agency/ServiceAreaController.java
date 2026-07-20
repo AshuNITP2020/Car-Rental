@@ -1,6 +1,7 @@
 package com.carrental.agency;
 
 import com.carrental.auth.TenantContext;
+import com.carrental.agency.dto.ServiceAreaCitiesRequest;
 import com.carrental.agency.dto.ServiceAreaRequest;
 import com.carrental.agency.dto.ServiceAreaResponse;
 import jakarta.validation.Valid;
@@ -12,10 +13,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Agency operating areas.
- *   GET /api/agencies/me/service-area      the caller's zone (tenant-scoped)
- *   PUT /api/agencies/me/service-area      draw/replace it (agency ADMIN)
- *   GET /api/service-areas/covers?lat&lng  is a map point serviced by anyone?
- *                                          (trip form pin feedback + drop check)
+ *   GET /api/agencies/me/service-area         the caller's zone (tenant-scoped)
+ *   PUT /api/agencies/me/service-area         CUSTOM mode: hand-drawn polygon
+ *   PUT /api/agencies/me/service-area/cities  CITIES mode: circles around picked
+ *                                             cities (scattered parts allowed)
+ *   GET /api/service-areas/covers?lat&lng     is a map point serviced by anyone?
+ *   GET /api/service-areas/covers-route       can one zone run the whole route?
  */
 @RestController
 public class ServiceAreaController {
@@ -28,14 +31,17 @@ public class ServiceAreaController {
 
     @GetMapping("/api/agencies/me/service-area")
     public ServiceAreaResponse mine() {
-        return new ServiceAreaResponse(
-                serviceAreas.get(TenantContext.requireAgencyId()).orElse(null));
+        return serviceAreas.get(TenantContext.requireAgencyId());
     }
 
     @PutMapping("/api/agencies/me/service-area")
     public ServiceAreaResponse update(@Valid @RequestBody ServiceAreaRequest req) {
-        return new ServiceAreaResponse(
-                serviceAreas.update(TenantContext.requireAgencyAdmin(), req.polygon()));
+        return serviceAreas.updateCustom(TenantContext.requireAgencyAdmin(), req.polygon());
+    }
+
+    @PutMapping("/api/agencies/me/service-area/cities")
+    public ServiceAreaResponse updateCities(@Valid @RequestBody ServiceAreaCitiesRequest req) {
+        return serviceAreas.updateFromCities(TenantContext.requireAgencyAdmin(), req);
     }
 
     @GetMapping("/api/service-areas/covers")

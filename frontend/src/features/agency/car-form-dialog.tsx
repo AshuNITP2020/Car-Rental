@@ -37,6 +37,7 @@ function defaultsFor(car?: CarResponse): CarFormValues {
     make: car?.make ?? '',
     model: car?.model ?? '',
     category: car?.category ?? '',
+    seats: car?.seats != null ? String(car.seats) : '5',
     regNo: car?.regNo ?? '',
     pricePerDay: car?.pricePerDay != null ? String(car.pricePerDay) : '',
     status: car?.status ?? 'AVAILABLE',
@@ -84,8 +85,8 @@ export function CarFormDialog({
     agency?.latitude != null && agency?.longitude != null
       ? { lat: agency.latitude, lng: agency.longitude }
       : null
-  const zone = area?.polygon ?? []
-  const mapCenter = pin ?? agencyBase ?? (zone.length > 0 ? zone[0] : null)
+  const zone = area?.polygons ?? []
+  const mapCenter = pin ?? agencyBase ?? (zone[0]?.[0] ?? null)
 
   function setPin(p: LatLng) {
     form.setValue('latitude', p.lat.toFixed(6), { shouldDirty: true })
@@ -133,6 +134,15 @@ export function CarFormDialog({
                   <option key={c} value={c} />
                 ))}
               </datalist>
+            </Field>
+            <Field label="Seats" htmlFor="seats" required error={errors.seats?.message}>
+              <Select id="seats" {...form.register('seats')}>
+                {[2, 4, 5, 6, 7, 8].map((n) => (
+                  <option key={n} value={n}>
+                    {n} seats
+                  </option>
+                ))}
+              </Select>
             </Field>
             <Field
               label="Registration no."

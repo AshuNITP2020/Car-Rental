@@ -55,6 +55,10 @@ public interface AgencySearchRepository extends Repository<Car, Long> {
     /** Where a car actually is; no coordinates -> parked at the agency base. */
     String CAR_POS = "coalesce(c.geog, ST_SetSRID(ST_MakePoint(a.longitude, a.latitude), 4326)::geography)";
 
+    /** Customer's car-type/seats filters — cars that don't fit don't count. */
+    String CAR_FITS = "(cast(:carType as text) is null or upper(c.category) = upper(cast(:carType as text)))"
+            + " and (cast(:minSeats as integer) is null or c.seats >= cast(:minSeats as integer))";
+
     String AGG_SELECT = "select a.id as \"agencyId\", a.name as \"name\", a.city as \"city\", "
             + "a.latitude as \"latitude\", a.longitude as \"longitude\", "
             + "count(c.id) as \"availableCars\", min(c.price_per_day) as \"fromPrice\", "
@@ -67,6 +71,7 @@ public interface AgencySearchRepository extends Repository<Car, Long> {
             + "  and ST_Covers(a.service_area, " + PICKUP + ") "
             + "  and " + DROP_OK
             + "  and c.status = 'AVAILABLE' "
+            + "  and " + CAR_FITS
             + "  and ST_Covers(a.service_area, " + CAR_POS + ") ";
 
     String AGG_GROUP = " group by a.id, a.name, a.city, a.latitude, a.longitude, a.service_area "
@@ -78,7 +83,9 @@ public interface AgencySearchRepository extends Repository<Car, Long> {
             @Param("lat") double lat,
             @Param("lng") double lng,
             @Param("dlat") Double dropLat,
-            @Param("dlng") Double dropLng);
+            @Param("dlng") Double dropLng,
+            @Param("carType") String carType,
+            @Param("minSeats") Integer minSeats);
 
     /** Same, but only counting cars actually free for the requested window. */
     @Query(value = AGG_SELECT
@@ -90,6 +97,8 @@ public interface AgencySearchRepository extends Repository<Car, Long> {
             @Param("lng") double lng,
             @Param("dlat") Double dropLat,
             @Param("dlng") Double dropLng,
+            @Param("carType") String carType,
+            @Param("minSeats") Integer minSeats,
             @Param("from") OffsetDateTime from,
             @Param("to") OffsetDateTime to,
             @Param("blocking") Collection<String> blocking);

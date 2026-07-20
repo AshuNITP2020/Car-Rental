@@ -59,6 +59,10 @@ public class Car {
     @Column(nullable = false, length = 40)
     private String category;
 
+    /** Passenger seats — what customers filter by (with category), not make/model. */
+    @Column(nullable = false)
+    private Integer seats = 5;
+
     @Column(name = "reg_no", nullable = false, length = 20)
     private String regNo;
 

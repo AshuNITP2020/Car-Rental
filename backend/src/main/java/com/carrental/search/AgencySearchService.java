@@ -32,10 +32,11 @@ public class AgencySearchService {
 
     @Transactional(readOnly = true)
     public List<AgencySearchResult> search(double lat, double lng, Double dropLat, Double dropLng,
+                                           String carType, Integer minSeats,
                                            OffsetDateTime from, OffsetDateTime to) {
         List<AgencySearchRepository.AgencyAggRow> rows = from == null
-                ? repo.agenciesCovering(lat, lng, dropLat, dropLng)
-                : repo.agenciesCoveringBetween(lat, lng, dropLat, dropLng, from, to,
+                ? repo.agenciesCovering(lat, lng, dropLat, dropLng, carType, minSeats)
+                : repo.agenciesCoveringBetween(lat, lng, dropLat, dropLng, carType, minSeats, from, to,
                         BookingStatus.BLOCKING.stream().map(Enum::name).toList());
         if (rows.isEmpty()) {
             return List.of();
@@ -56,7 +57,7 @@ public class AgencySearchService {
                             rating != null ? rating.getCount() : 0,
                             round2(r.getDistanceKm()),
                             r.getServiceAreaGeoJson() != null
-                                    ? ServiceAreaService.ringFromGeoJson(r.getServiceAreaGeoJson())
+                                    ? ServiceAreaService.ringsFromGeoJson(r.getServiceAreaGeoJson())
                                     : null);
                 })
                 .toList();   // repository already orders nearest-first

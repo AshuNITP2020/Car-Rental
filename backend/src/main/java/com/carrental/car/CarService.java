@@ -47,6 +47,7 @@ public class CarService {
         car.setMake(req.make().trim());
         car.setModel(req.model().trim());
         car.setCategory(req.category().trim());
+        car.setSeats(req.seatsOrDefault());
         car.setRegNo(req.regNo().trim());
         car.setPricePerDay(req.pricePerDay());
         car.setLatitude(req.latitude());
@@ -65,6 +66,7 @@ public class CarService {
         car.setMake(req.make().trim());
         car.setModel(req.model().trim());
         car.setCategory(req.category().trim());
+        car.setSeats(req.seatsOrDefault());
         car.setRegNo(req.regNo().trim());
         car.setPricePerDay(req.pricePerDay());
         car.setStatus(req.status());
@@ -89,7 +91,7 @@ public class CarService {
         if (lat == null || lng == null) {
             return;
         }
-        boolean hasZone = serviceAreas.get(agencyId).isPresent();
+        boolean hasZone = !serviceAreas.get(agencyId).polygons().isEmpty();
         if (hasZone && !serviceAreas.isCoveredBy(agencyId, lat, lng)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "The car's location must be inside your operating area");

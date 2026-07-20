@@ -37,29 +37,36 @@ function Recenter({ focus }: { focus: LatLng | null }) {
  */
 export default function CarLocationMap({
   center,
+  zoom = 11,
   zone,
   value,
   onChange,
 }: {
   center: LatLng
-  /** The agency's operating polygon, drawn as guidance (cars must stay inside). */
-  zone: LatLng[]
+  /** Initial zoom — pass a low value for a country-wide "pick anywhere" view. */
+  zoom?: number
+  /** The agency's operating area ring(s), drawn as guidance (cars must stay inside). */
+  zone: LatLng[][]
   value: LatLng | null
   onChange: (p: LatLng) => void
 }) {
   return (
-    <MapContainer center={[center.lat, center.lng]} zoom={11} scrollWheelZoom className="h-full w-full">
+    <MapContainer center={[center.lat, center.lng]} zoom={zoom} scrollWheelZoom className="h-full w-full">
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <ClickHandler onPick={onChange} />
-      <Recenter focus={value ?? center} />
-      {zone.length >= 3 && (
-        <Polygon
-          positions={zone.map((p) => [p.lat, p.lng] as [number, number])}
-          pathOptions={{ color: '#4f46e5', weight: 2, fillOpacity: 0.06, dashArray: '6 6' }}
-        />
+      <Recenter focus={value} />
+      {zone.map(
+        (ring, i) =>
+          ring.length >= 3 && (
+            <Polygon
+              key={i}
+              positions={ring.map((p) => [p.lat, p.lng] as [number, number])}
+              pathOptions={{ color: '#4f46e5', weight: 2, fillOpacity: 0.06, dashArray: '6 6' }}
+            />
+          ),
       )}
       {value && (
         <Marker

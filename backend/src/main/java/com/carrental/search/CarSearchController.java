@@ -31,6 +31,8 @@ public class CarSearchController {
     @GetMapping("/api/cars/search")
     public PageResponse<CarSearchResult> search(
             @RequestParam(required = false) Long agencyId,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) Integer minSeats,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to,
             @RequestParam(defaultValue = "0") int page,
@@ -38,8 +40,9 @@ public class CarSearchController {
 
         validateWindow(from, to);
         size = validatePaging(page, size);
+        String type = category != null && !category.isBlank() ? category.trim() : null;
 
-        return search.search(new CarSearchCriteria(agencyId, from, to, page, size));
+        return search.search(new CarSearchCriteria(agencyId, type, minSeats, from, to, page, size));
     }
 
     /**

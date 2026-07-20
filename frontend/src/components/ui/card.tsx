@@ -5,7 +5,8 @@ export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       className={cn(
-        'rounded-[calc(var(--radius)+2px)] border border-border bg-card text-card-foreground shadow-sm',
+        // Borderless: the soft shadow alone separates it from the page.
+        'rounded-[calc(var(--radius)+4px)] bg-card text-card-foreground shadow-soft transition-shadow duration-200',
         className,
       )}
       {...props}

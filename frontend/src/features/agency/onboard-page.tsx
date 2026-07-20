@@ -13,7 +13,7 @@ import { cn } from '../../lib/utils'
 import { AgencyForm } from './agency-form'
 import { toAgencyRequest, type AgencyFormValues } from './agency-schema'
 import { CarFormDialog } from './car-form-dialog'
-import { ServiceAreaCard } from './service-area-card'
+import { ServiceAreaEditor } from './service-area-editor'
 import {
   useCreateAgencyMutation,
   useGetAgencyCarsQuery,
@@ -53,7 +53,7 @@ export function AgencyOnboardPage() {
 
   if (hasAgency && (areaQ.isLoading || carsQ.isLoading)) return <LoadingState />
 
-  const hasArea = (areaQ.data?.polygon?.length ?? 0) >= 3
+  const hasArea = (areaQ.data?.polygons?.length ?? 0) > 0
   const carCount = carsQ.data?.length ?? 0
   const step: Step = visited ?? (!hasAgency ? 'profile' : !hasArea ? 'area' : 'car')
 
@@ -71,7 +71,7 @@ export function AgencyOnboardPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-4xl space-y-6">
       <div className="space-y-2 text-center">
         <div className="mx-auto w-fit rounded-full bg-accent p-3 text-accent-foreground">
           <Building2 className="h-6 w-6" />
@@ -133,7 +133,7 @@ export function AgencyOnboardPage() {
 
       {step === 'area' && (
         <>
-          <ServiceAreaCard
+          <ServiceAreaEditor
             agencyCenter={
               agencyQ.data?.latitude != null && agencyQ.data?.longitude != null
                 ? { lat: agencyQ.data.latitude, lng: agencyQ.data.longitude }
@@ -148,8 +148,8 @@ export function AgencyOnboardPage() {
           </div>
           {!hasArea && (
             <p className="text-right text-xs text-muted-foreground">
-              Draw and save an area with at least 3 corners to continue. Your cars only
-              serve trips that start <em>and</em> end inside it.
+              Pick the cities you serve (or draw an area) and save to continue. Your
+              cars only serve trips that start <em>and</em> end inside your area.
             </p>
           )}
         </>

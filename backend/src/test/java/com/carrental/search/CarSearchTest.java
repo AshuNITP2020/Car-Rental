@@ -93,7 +93,7 @@ class CarSearchTest {
     }
 
     private CarSearchCriteria criteria(OffsetDateTime from, OffsetDateTime to, int page, int size) {
-        return new CarSearchCriteria(agency.getId(), from, to, page, size);
+        return new CarSearchCriteria(agency.getId(), null, null, from, to, page, size);
     }
 
     private List<Long> ids(PageResponse<CarSearchResult> p) {

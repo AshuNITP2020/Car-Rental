@@ -1,4 +1,5 @@
-import { ArrowLeft, Building2, Car as CarIcon, MapPin } from 'lucide-react'
+import { Building2, Car as CarIcon, MapPin } from 'lucide-react'
+import { BackButton } from '../../components/ui/back-button'
 import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom'
 import { StatusBadge } from '../../components/ui/badge'
 import { EmptyState } from '../../components/ui/empty-state'
@@ -48,12 +49,7 @@ export function CarDetailPage() {
 
   return (
     <div className="space-y-6">
-      <Link
-        to="/"
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="h-4 w-4" /> Back to home
-      </Link>
+      <BackButton />
 
       <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">

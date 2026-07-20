@@ -43,8 +43,10 @@ public class CarSearchService {
         Pageable pageable = PageRequest.of(carSearchCriteria.page(), carSearchCriteria.size(), SORT);
 
         Page<Car> page = carSearchCriteria.from() == null
-                ? repo.search(CarStatus.AVAILABLE, carSearchCriteria.agencyId(), pageable)
+                ? repo.search(CarStatus.AVAILABLE, carSearchCriteria.agencyId(),
+                        carSearchCriteria.category(), carSearchCriteria.minSeats(), pageable)
                 : repo.searchAvailableBetween(CarStatus.AVAILABLE, carSearchCriteria.agencyId(),
+                        carSearchCriteria.category(), carSearchCriteria.minSeats(),
                         carSearchCriteria.from(), carSearchCriteria.to(), BookingStatus.BLOCKING, pageable);
 
         Page<CarSearchResult> results = page.map(CarSearchResult::from);

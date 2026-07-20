@@ -8,6 +8,9 @@ export type AgencySearchArgs = {
   /** Destination — when set, only agencies whose zone covers BOTH ends match. */
   dlat?: number
   dlng?: number
+  /** Car type + minimum seats — cars that don't fit don't count. */
+  carType?: string
+  seats?: number
   from?: string
   to?: string
 }

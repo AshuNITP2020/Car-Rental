@@ -22,6 +22,7 @@ public record CarSearchResult(
         String make,
         String model,
         String category,
+        Integer seats,
         BigDecimal pricePerDay,
         Double latitude,
         Double longitude,
@@ -40,6 +41,7 @@ public record CarSearchResult(
                 car.getMake(),
                 car.getModel(),
                 car.getCategory(),
+                car.getSeats(),
                 car.getPricePerDay(),
                 car.getLatitude(),
                 car.getLongitude(),
@@ -51,6 +53,6 @@ public record CarSearchResult(
     /** Copy with the aggregate rating filled in (records are immutable). */
     public CarSearchResult withRating(Double averageRating, long reviewCount) {
         return new CarSearchResult(id, agencyId, agencyName, city, make, model, category,
-                pricePerDay, latitude, longitude, status, averageRating, reviewCount);
+                seats, pricePerDay, latitude, longitude, status, averageRating, reviewCount);
     }
 }

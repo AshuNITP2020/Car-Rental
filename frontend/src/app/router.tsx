@@ -29,6 +29,9 @@ const TripSearchPage = lazy(() =>
 const AgencyResultsPage = lazy(() =>
   import('../features/trip/agency-results-page').then((m) => ({ default: m.AgencyResultsPage })),
 )
+const DestinationsPage = lazy(() =>
+  import('../features/trip/destinations-page').then((m) => ({ default: m.DestinationsPage })),
+)
 const AgencyOnboardPage = lazy(() =>
   import('../features/agency/onboard-page').then((m) => ({ default: m.AgencyOnboardPage })),
 )
@@ -90,6 +93,7 @@ export const router = createBrowserRouter([
         children: [
           // ── Customer: trip-first flow (pickup + drop + dates is all it takes) ──
           { index: true, element: <TripSearchPage /> },
+          { path: 'destinations', element: <DestinationsPage /> },
           { path: 'agencies', element: <AgencyResultsPage /> },
           { path: 'cars/:id', element: <CarDetailPage /> },
           { path: 'agencies/:id', element: <AgencyProfilePage /> },

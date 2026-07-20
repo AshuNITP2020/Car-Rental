@@ -32,6 +32,8 @@ public class AgencySearchController {
             @RequestParam double lng,
             @RequestParam(required = false) Double dlat,
             @RequestParam(required = false) Double dlng,
+            @RequestParam(required = false) String carType,
+            @RequestParam(required = false) Integer seats,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to) {
         validateCoords(lat, lng);
@@ -49,7 +51,8 @@ public class AgencySearchController {
         if (from != null && !from.isBefore(to)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "'from' must be before 'to'");
         }
-        return search.search(lat, lng, dlat, dlng, from, to);
+        String type = carType != null && !carType.isBlank() ? carType.trim() : null;
+        return search.search(lat, lng, dlat, dlng, type, seats, from, to);
     }
 
     private static void validateCoords(double lat, double lng) {

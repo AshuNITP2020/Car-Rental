@@ -7,9 +7,10 @@ import java.util.List;
 
 /**
  * One agency in the trip-first search: what a customer chooses between (the
- * marketplace's "ride option"). Matched because its operating polygon covers
- * the customer's pickup pin. {@code serviceArea} is the polygon ring so the
- * map can show WHY it matched; {@code distanceKm} is agency base -> pickup pin.
+ * marketplace's "ride option"). Matched because its operating area covers the
+ * whole trip. {@code serviceArea} carries the area's outer ring(s) — one per
+ * part, since areas may be scattered — so the map can show WHY it matched;
+ * {@code distanceKm} is agency base -> pickup pin.
  */
 public record AgencySearchResult(
         Long agencyId,
@@ -22,6 +23,6 @@ public record AgencySearchResult(
         Double averageRating,
         long reviewCount,
         Double distanceKm,
-        List<LatLng> serviceArea
+        List<List<LatLng>> serviceArea
 ) {
 }

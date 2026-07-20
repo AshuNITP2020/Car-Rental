@@ -172,7 +172,7 @@ public class SeedService {
             agencies.save(agency);
             members.save(member(owner, agency, AgencyRole.ADMIN));
 
-            serviceAreas.update(agency.getId(),
+            serviceAreas.updateCustom(agency.getId(),
                     java.util.Arrays.stream(c.ring())
                             .map(p -> new LatLng(p[0], p[1]))
                             .toList());
@@ -187,6 +187,7 @@ public class SeedService {
                     car.setModel(faker.vehicle().model());
                     car.setCategory(CATEGORIES[faker.random().nextInt(CATEGORIES.length)]);
                     car.setRegNo(String.format("CR%02d-%d%d", created, s, i));
+                    car.setSeats(seatsFor(car.getCategory()));
                     car.setPricePerDay(BigDecimal.valueOf(faker.number().numberBetween(1200, 6000)));
                     car.setLatitude(c.carSpots()[s][0]);
                     car.setLongitude(c.carSpots()[s][1]);
@@ -219,12 +220,22 @@ public class SeedService {
         return m;
     }
 
+    /** Seats implied by category — what customers filter by. */
+    private static int seatsFor(String category) {
+        return switch (category) {
+            case "HATCHBACK" -> 4;
+            case "SUV", "MPV" -> 7;
+            default -> 5;   // SEDAN, LUXURY
+        };
+    }
+
     private Car newCar(Faker faker, Agency agency, String[] city, int agencyIdx, int carIdx) {
         Car car = new Car();
         car.setAgency(agency);
         car.setMake(faker.vehicle().manufacturer());
         car.setModel(faker.vehicle().model());
         car.setCategory(CATEGORIES[faker.random().nextInt(CATEGORIES.length)]);
+        car.setSeats(seatsFor(car.getCategory()));
         car.setRegNo(String.format("SD%04d-%04d", agencyIdx, carIdx));   // unique per agency
         car.setPricePerDay(BigDecimal.valueOf(faker.number().numberBetween(800, 8000)));
         car.setLatitude(Double.parseDouble(city[1]));

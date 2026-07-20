@@ -8,7 +8,7 @@ import { useToast } from '../../components/ui/toast'
 import { errorMessage } from '../../lib/errors'
 import { AgencyForm } from './agency-form'
 import { toAgencyRequest, type AgencyFormValues } from './agency-schema'
-import { ServiceAreaCard } from './service-area-card'
+import { ServiceAreaEditor } from './service-area-editor'
 import { useGetMyAgencyQuery, useUpdateAgencyMutation } from './api'
 
 export function AgencySettingsPage() {
@@ -30,7 +30,7 @@ export function AgencySettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-5xl space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Agency settings</h1>
         <StatusBadge status={agency.status} />
@@ -60,7 +60,7 @@ export function AgencySettingsPage() {
         </CardContent>
       </Card>
 
-      <ServiceAreaCard
+      <ServiceAreaEditor
         agencyCenter={
           agency.latitude != null && agency.longitude != null
             ? { lat: agency.latitude, lng: agency.longitude }

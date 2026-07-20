@@ -25,6 +25,7 @@ public class SpaController {
 
     @GetMapping({
             "/", "/login", "/register",
+            "/destinations",
             "/trips", "/trips/**",
             "/account",
             "/cars/**",
