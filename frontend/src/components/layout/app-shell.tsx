@@ -22,7 +22,6 @@ type Area = 'customer' | 'agency' | 'admin'
 /** Tier 1 (the black bar): where you can GO. */
 const GLOBAL_NAV: { to: string; label: string; end?: boolean }[] = [
   { to: '/', label: 'Home', end: true },
-  { to: '/destinations', label: 'Destinations' },
   { to: '/trips', label: 'My trips' },
 ]
 
@@ -131,8 +130,12 @@ export function AppShell() {
   const { pathname } = useLocation()
   const { hasAgency } = useAuth()
   const area = currentArea(pathname)
+  // Agency accounts are supply-side only: no planner/destinations in their nav.
   const globalNav = hasAgency
-    ? [...GLOBAL_NAV, { to: '/agency', label: 'My agency' }]
+    ? [
+        { to: '/agency', label: 'My agency' },
+        { to: '/trips', label: 'My trips' },
+      ]
     : GLOBAL_NAV
   const tabs = area !== 'customer' ? AREA_TABS[area] : null
 

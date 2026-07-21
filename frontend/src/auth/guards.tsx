@@ -23,6 +23,15 @@ export function RequireAuth() {
   return <Outlet />
 }
 
+/** Customer-only surfaces (trip planner, results): agency accounts are
+ *  supply-side only and get sent to their console instead. */
+export function RequireCustomer() {
+  const { status, hasAgency } = useAuth()
+  if (status === 'loading') return <FullPageLoading />
+  if (hasAgency) return <Navigate to="/agency" replace />
+  return <Outlet />
+}
+
 /** Requires agency membership (JWT agencyId claim); else routes to onboarding. */
 export function RequireAgency() {
   const { status, hasAgency } = useAuth()

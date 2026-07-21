@@ -3,6 +3,7 @@ package com.carrental.booking;
 import com.carrental.booking.dto.BookingResponse;
 import com.carrental.booking.dto.CreateBookingRequest;
 import com.carrental.car.Car;
+import com.carrental.agency.AgencyMemberRepository;
 import com.carrental.car.CarRepository;
 import com.carrental.car.CarStatus;
 import com.carrental.city.CityService;
@@ -37,6 +38,7 @@ public class BookingService {
     private static final Logger log = LoggerFactory.getLogger(BookingService.class);
 
     private final BookingRepository bookings;
+    private final AgencyMemberRepository agencyMembers;
     private final CarRepository cars;
     private final UserRepository users;
     private final BookingStateMachine stateMachine;
@@ -50,12 +52,14 @@ public class BookingService {
     @Value("${app.booking.hold-minutes:10}")
     private long holdMinutes;
 
-    public BookingService(BookingRepository bookings, CarRepository cars, UserRepository users,
+    public BookingService(BookingRepository bookings, AgencyMemberRepository agencyMembers,
+                          CarRepository cars, UserRepository users,
                           BookingStateMachine stateMachine, PaymentService paymentService,
                           PricingService pricing, OneWayFeeService oneWayFees, CityService cities,
                           DomainEventPublisher events,
                           PlatformTransactionManager txManager) {
         this.bookings = bookings;
+        this.agencyMembers = agencyMembers;
         this.cars = cars;
         this.users = users;
         this.stateMachine = stateMachine;
@@ -190,8 +194,21 @@ public class BookingService {
         }
     }
 
+    /**
+     * Agency accounts are supply-side only: members of ANY agency cannot book
+     * cars at all (their own or a competitor's) — booking is a customer act.
+     * This also closes the self-dealing hole (fake bookings, self-reviews).
+     */
+    private void requireCustomerAccount(Long userId) {
+        if (agencyMembers.existsByUser_Id(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Agency accounts can't book cars — use a personal customer account");
+        }
+    }
+
     /** Builds and flushes a PENDING hold. Lets DB constraint violations propagate. */
     private Booking buildAndSave(Long userId, Car car, CreateBookingRequest req, String idempotencyKey) {
+        requireCustomerAccount(userId);
         // Pickup point = where the car actually is (falls back to agency base);
         // the city string is just a human-readable label for it.
         Double pickupLat = car.getLatitude() != null ? car.getLatitude() : car.getAgency().getLatitude();

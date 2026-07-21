@@ -12,6 +12,7 @@ import { useToast } from '../../components/ui/toast'
 import { dayAtHour, DEFAULT_RENTAL_HOUR, isValidRange } from '../../lib/date'
 import { errorMessage } from '../../lib/errors'
 import { formatMoney } from '../../lib/utils'
+import { useAuth } from '../auth/use-auth'
 import { useCreateBookingMutation } from '../bookings/api'
 import { usePlaceLabel } from '../trip/api'
 import { useGetCarAvailabilityQuery, useGetCarQuoteQuery } from './api'
@@ -34,16 +35,35 @@ export interface TripContext {
   oneWay?: boolean
 }
 
-export function BookingWidget({
-  carId,
-  pricePerDay,
-  trip,
-}: {
+interface BookingWidgetProps {
   carId: number
   pricePerDay: number
   /** Prefill from the trip-first flow (dates, drop pin, one-way). */
   trip?: TripContext
-}) {
+}
+
+/**
+ * Gate: agency accounts are supply-side only — booking is a customer act (the
+ * backend rejects it too; this is the honest version of that rule). The inner
+ * widget keeps its hooks unconditional.
+ */
+export function BookingWidget(props: BookingWidgetProps) {
+  const { hasAgency } = useAuth()
+  if (hasAgency) {
+    return (
+      <Card className="space-y-2 p-5">
+        <p className="font-semibold">Agency accounts can't book cars</p>
+        <p className="text-sm text-muted-foreground">
+          Booking is for customers. Manage your own fleet from the agency
+          console, or use a personal account to rent a car.
+        </p>
+      </Card>
+    )
+  }
+  return <BookingForm {...props} />
+}
+
+function BookingForm({ carId, pricePerDay, trip }: BookingWidgetProps) {
   const toast = useToast()
   const navigate = useNavigate()
   const [createBooking, { isLoading: creating }] = useCreateBookingMutation()
