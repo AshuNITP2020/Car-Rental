@@ -4,6 +4,8 @@ import com.carrental.agency.dto.CityArea;
 import com.carrental.agency.dto.LatLng;
 import com.carrental.agency.dto.ServiceAreaCitiesRequest;
 import com.carrental.agency.dto.ServiceAreaResponse;
+import com.carrental.booking.BookingService;
+import com.carrental.booking.dto.CreateBookingRequest;
 import com.carrental.car.Car;
 import com.carrental.car.CarRepository;
 import com.carrental.car.CarStatus;
@@ -20,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -46,6 +49,8 @@ class ServiceAreaTest {
     @Autowired UserRepository users;
     @Autowired AgencyRepository agencies;
     @Autowired CarRepository cars;
+    @Autowired BookingService bookingService;
+    @Autowired AgencyMemberRepository members;
 
     private Agency agency;
 
@@ -78,7 +83,6 @@ class ServiceAreaTest {
         car.setLongitude(LNG);
         cars.save(car);
 
-        // ~0.5° square around the base (~55 km) — the operating area.
         serviceAreas.updateCustom(agency.getId(), List.of(
                 new LatLng(LAT - 0.5, LNG - 0.5),
                 new LatLng(LAT - 0.5, LNG + 0.5),
@@ -96,7 +100,6 @@ class ServiceAreaTest {
 
     @Test
     void citiesModeBuildsScatteredAreas() {
-        // Two cities ~330 km apart with 30 km circles: two SEPARATE parts.
         ServiceAreaResponse area = serviceAreas.updateFromCities(agency.getId(),
                 new ServiceAreaCitiesRequest(List.of(
                         new CityArea("CityA", LAT, LNG),
@@ -112,7 +115,6 @@ class ServiceAreaTest {
         assertFalse(serviceAreas.isCoveredBy(agency.getId(), LAT + 1.5, LNG),
                 "the gap BETWEEN the circles is not covered — scattered means scattered");
 
-        // Both trip ends in (different) parts of the SAME agency's area -> runnable.
         assertEquals(1, serviceAreas.routeCoverage(LAT, LNG, LAT + 3.0, LNG),
                 "a scattered agency covers routes between its parts");
     }
@@ -221,6 +223,33 @@ class ServiceAreaTest {
         assertThrows(ResponseStatusException.class,
                 () -> oneWayFees.feeFor(agency.getId(), LAT, LNG, LAT + 2.0, LNG),
                 "a drop outside the car's own agency zone must be rejected");
+    }
+
+    @Test
+    void agencyAccountsCannotBookCars() {
+        AgencyMember membership = new AgencyMember();
+        membership.setUser(agency.getOwner());
+        membership.setAgency(agency);
+        membership.setRole(AgencyRole.ADMIN);
+        members.save(membership);
+
+        Car target = cars.findByAgency_Id(agency.getId()).get(0);
+        CreateBookingRequest req = new CreateBookingRequest(target.getId(),
+                OffsetDateTime.now().plusDays(1), OffsetDateTime.now().plusDays(2),
+                null, null, null);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> bookingService.createOptimistic(agency.getOwner().getId(), req));
+        assertEquals(403, ex.getStatusCode().value(), "agency member booking must be forbidden");
+
+        User customer = new User();
+        customer.setName("Plain Customer");
+        customer.setEmail("cust-" + UUID.randomUUID() + "@test.local");
+        customer.setPasswordHash("x");
+        users.save(customer);
+        assertEquals("PENDING",
+                bookingService.createOptimistic(customer.getId(), req).status(),
+                "non-agency users book normally");
     }
 
     @Test

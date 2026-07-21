@@ -1,6 +1,6 @@
 import { lazy, Suspense, type ReactNode } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
-import { RequireAdmin, RequireAgency, RequireAuth } from '../auth/guards'
+import { RequireAdmin, RequireAgency, RequireAuth, RequireCustomer } from '../auth/guards'
 import { AppShell } from '../components/layout/app-shell'
 import { NotFound } from '../components/not-found'
 import { RouteErrorPage } from '../components/route-error'
@@ -28,9 +28,6 @@ const TripSearchPage = lazy(() =>
 )
 const AgencyResultsPage = lazy(() =>
   import('../features/trip/agency-results-page').then((m) => ({ default: m.AgencyResultsPage })),
-)
-const DestinationsPage = lazy(() =>
-  import('../features/trip/destinations-page').then((m) => ({ default: m.DestinationsPage })),
 )
 const AgencyOnboardPage = lazy(() =>
   import('../features/agency/onboard-page').then((m) => ({ default: m.AgencyOnboardPage })),
@@ -92,9 +89,13 @@ export const router = createBrowserRouter([
         element: <AppShell />,
         children: [
           // ── Customer: trip-first flow (pickup + drop + dates is all it takes) ──
-          { index: true, element: <TripSearchPage /> },
-          { path: 'destinations', element: <DestinationsPage /> },
-          { path: 'agencies', element: <AgencyResultsPage /> },
+          {
+            element: <RequireCustomer />,
+            children: [
+              { index: true, element: <TripSearchPage /> },
+              { path: 'agencies', element: <AgencyResultsPage /> },
+            ],
+          },
           { path: 'cars/:id', element: <CarDetailPage /> },
           { path: 'agencies/:id', element: <AgencyProfilePage /> },
           { path: 'trips', element: <TripsPage /> },

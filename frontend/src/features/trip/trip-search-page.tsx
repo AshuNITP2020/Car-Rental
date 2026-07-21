@@ -301,7 +301,7 @@ const EXPLORE = [
   {
     title: 'Intercity routes',
     body: 'Corridor agencies cover whole routes — Mumbai–Pune, Delhi–Jaipur and more.',
-    to: '/destinations',
+    to: '/',
   },
   {
     title: 'List your fleet',

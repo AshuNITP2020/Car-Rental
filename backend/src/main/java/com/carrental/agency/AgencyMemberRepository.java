@@ -12,4 +12,7 @@ public interface AgencyMemberRepository extends JpaRepository<AgencyMember, Long
      * the earliest and we'd extend to an "active agency" selector.
      */
     Optional<AgencyMember> findFirstByUser_IdOrderByIdAsc(Long userId);
+
+    /** Is this user part of ANY agency? (agency accounts are supply-side only) */
+    boolean existsByUser_Id(Long userId);
 }
