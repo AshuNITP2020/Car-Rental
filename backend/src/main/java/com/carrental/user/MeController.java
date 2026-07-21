@@ -1,5 +1,6 @@
 package com.carrental.user;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.carrental.auth.AuthPrincipal;
 import com.carrental.auth.dto.UserResponse;
 import org.springframework.http.HttpStatus;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 /** Returns the currently authenticated user. Requires a valid access token. */
+@Tag(name = "Me", description = "The authenticated user\u2019s profile")
 @RestController
 @RequestMapping("/api")
 public class MeController {

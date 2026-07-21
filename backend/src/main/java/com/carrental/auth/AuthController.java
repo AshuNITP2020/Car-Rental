@@ -1,5 +1,6 @@
 package com.carrental.auth;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.carrental.auth.dto.AuthResponse;
 import com.carrental.auth.dto.LoginRequest;
 import com.carrental.auth.dto.RefreshRequest;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Tag(name = "Auth", description = "Register, login, refresh and logout — issues the Bearer JWTs the rest of the API needs")
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {

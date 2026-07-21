@@ -1,5 +1,6 @@
 package com.carrental.booking;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.carrental.booking.dto.AvailabilityResponse;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -15,6 +16,7 @@ import java.time.OffsetDateTime;
  * Customer-facing availability check (cross-tenant: any car, any agency).
  *   GET /api/cars/{id}/availability?from=2026-06-21T10:00:00Z&to=2026-06-24T10:00:00Z
  */
+@Tag(name = "Availability", description = "Is a car free for a window?")
 @RestController
 public class CarAvailabilityController {
 

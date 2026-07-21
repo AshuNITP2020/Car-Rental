@@ -1,5 +1,6 @@
 package com.carrental.payment;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.carrental.auth.AuthPrincipal;
 import com.carrental.payment.dto.PaymentOrderResponse;
 import com.carrental.payment.dto.VerifyCheckoutRequest;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
  * Creates the payment order a customer uses to pay for their booking.
  *   POST /api/bookings/{bookingId}/payment
  */
+@Tag(name = "Payments", description = "Checkout + verification for a booking (Razorpay or the dev mock provider)")
 @RestController
 public class PaymentController {
 

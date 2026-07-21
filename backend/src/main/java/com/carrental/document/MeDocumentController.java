@@ -1,5 +1,6 @@
 package com.carrental.document;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.carrental.auth.AuthPrincipal;
 import com.carrental.document.dto.DocumentResponse;
 import org.springframework.http.HttpStatus;
@@ -23,6 +24,7 @@ import java.util.List;
  *   GET    /api/me/kyc-documents
  *   DELETE /api/me/kyc-documents/{id}
  */
+@Tag(name = "KYC documents", description = "The caller\u2019s identity documents for KYC")
 @RestController
 @RequestMapping("/api/me/kyc-documents")
 public class MeDocumentController {

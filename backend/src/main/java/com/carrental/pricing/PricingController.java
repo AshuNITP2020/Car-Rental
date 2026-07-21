@@ -1,5 +1,7 @@
 package com.carrental.pricing;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.carrental.car.Car;
 import com.carrental.car.CarRepository;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -18,6 +20,7 @@ import java.time.OffsetDateTime;
  * dropLng}) quotes a one-way trip (adds the distance-based relocation fee).
  *   GET /api/cars/{id}/quote?from=…&to=…[&dropLat=18.52&dropLng=73.85]
  */
+@Tag(name = "Pricing", description = "Price quotes for a car and window; adding a drop point quotes a one-way trip with its relocation fee")
 @RestController
 public class PricingController {
 
@@ -31,6 +34,8 @@ public class PricingController {
         this.oneWayFees = oneWayFees;
     }
 
+    @Operation(summary = "Price quote for a car and window",
+            description = "dropLat/dropLng quotes a ONE-WAY trip: adds a distance-based relocation fee; the drop must be inside the car's own agency area.")
     @GetMapping("/api/cars/{id}/quote")
     public PriceBreakdown quote(
             @PathVariable Long id,

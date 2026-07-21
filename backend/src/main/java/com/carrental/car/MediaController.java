@@ -1,5 +1,6 @@
 package com.carrental.car;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.carrental.storage.ObjectStorage;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.CacheControl;
@@ -20,6 +21,7 @@ import java.time.Duration;
  * and the content type comes from that row. With {@code app.storage.provider=s3},
  * clients fetch presigned bucket URLs directly and never hit this endpoint.
  */
+@Tag(name = "Media", description = "Serves locally-stored car images")
 @RestController
 public class MediaController {
 

@@ -1,5 +1,6 @@
 package com.carrental.booking;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.carrental.auth.AuthPrincipal;
 import com.carrental.booking.dto.BookingResponse;
 import com.carrental.booking.dto.CancelResponse;
@@ -22,6 +23,7 @@ import java.util.List;
  * Customer-facing booking endpoints. A booking is always created for the
  * authenticated user; reads are scoped to that user.
  */
+@Tag(name = "Bookings", description = "Customer bookings: create a hold, list, view, cancel; one-way trips relocate the car on completion")
 @RestController
 @RequestMapping("/api/bookings")
 public class BookingController {

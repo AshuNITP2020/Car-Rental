@@ -1,5 +1,6 @@
 package com.carrental.review;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.carrental.agency.AgencyRepository;
 import com.carrental.review.dto.AgencyRatingResponse;
 import org.springframework.http.HttpStatus;
@@ -13,6 +14,7 @@ import org.springframework.web.server.ResponseStatusException;
  * its cars. Feeds the customer-facing agency profile page.
  *   GET /api/agencies/{id}/rating
  */
+@Tag(name = "Agency ratings", description = "Aggregate rating across an agency\u2019s fleet")
 @RestController
 public class AgencyRatingController {
 

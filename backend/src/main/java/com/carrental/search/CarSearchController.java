@@ -1,5 +1,6 @@
 package com.carrental.search;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,6 +17,7 @@ import java.time.OffsetDateTime;
  * for a window. Cheapest first. Requires authentication (any logged-in user).
  *   GET /api/cars/search?agencyId=42&from=…&to=…&page=0&size=20
  */
+@Tag(name = "Car search", description = "Cross-agency car catalogue: available cars, optionally one agency\u2019s fleet, a date window, car type and minimum seats")
 @RestController
 public class CarSearchController {
 

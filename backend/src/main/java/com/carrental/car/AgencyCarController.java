@@ -1,5 +1,6 @@
 package com.carrental.car;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.carrental.auth.TenantContext;
 import com.carrental.car.dto.CreateCarRequest;
 import com.carrental.car.dto.UpdateCarRequest;
@@ -24,6 +25,7 @@ import java.util.List;
  *   create/read/update -> any agency member
  *   delete             -> agency ADMIN only
  */
+@Tag(name = "Fleet", description = "Agency fleet CRUD; a car\u2019s location must stay inside the agency\u2019s operating area")
 @RestController
 @RequestMapping("/api/agency/cars")
 public class AgencyCarController {

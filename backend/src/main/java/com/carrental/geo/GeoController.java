@@ -1,5 +1,7 @@
 package com.carrental.geo;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.carrental.geo.dto.PlaceSuggestion;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -17,6 +19,7 @@ import java.util.List;
  *   GET /api/geo/search?q=coimb      -> places across India matching the text
  *   GET /api/geo/reverse?lat=&lng=   -> nearest place name for a map pin (204 if unknown)
  */
+@Tag(name = "Geocoding", description = "Place search + reverse lookup across India (server-side proxy over OpenStreetMap/Photon, cached)")
 @RestController
 @RequestMapping("/api/geo")
 @Validated
@@ -28,12 +31,14 @@ public class GeoController {
         this.geo = geo;
     }
 
+    @Operation(summary = "Typeahead over any Indian city/town/village")
     @GetMapping("/search")
     public List<PlaceSuggestion> search(@RequestParam @NotBlank @Size(max = 80) String q) {
         String query = q.trim();
         return query.length() < 2 ? List.of() : geo.search(query.toLowerCase());
     }
 
+    @Operation(summary = "Nearest place name for a map pin (204 when unknown)")
     @GetMapping("/reverse")
     public ResponseEntity<PlaceSuggestion> reverse(@RequestParam double lat, @RequestParam double lng) {
         // Snap to ~110 m so nearby pins (and drags) share one cache entry.

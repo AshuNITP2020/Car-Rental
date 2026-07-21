@@ -1,5 +1,6 @@
 package com.carrental.document;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.carrental.auth.AuthPrincipal;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
  * is no public or presigned URL for a private document.
  *   GET /api/documents/{id}/content
  */
+@Tag(name = "Document content", description = "Downloads a stored document\u2019s bytes")
 @RestController
 public class DocumentContentController {
 

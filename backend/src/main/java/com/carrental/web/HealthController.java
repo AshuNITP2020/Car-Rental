@@ -1,5 +1,6 @@
 package com.carrental.web;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +16,7 @@ import java.time.OffsetDateTime;
  * React -> Spring Boot -> Postgres works. The browser (via Vite's /api proxy)
  * calls this; we round-trip to the database and report what we found.
  */
+@Tag(name = "Health", description = "Liveness + database connectivity")
 @RestController
 @RequestMapping("/api")
 public class HealthController {

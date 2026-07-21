@@ -1,5 +1,6 @@
 package com.carrental.car;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.carrental.car.dto.CarImageResponse;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -13,6 +14,7 @@ import java.util.List;
  * Returns each image's fetch URL (app-served for local storage, presigned for S3).
  *   GET /api/cars/{carId}/images
  */
+@Tag(name = "Car images", description = "Public car photos for customers")
 @RestController
 public class CarImageController {
 
