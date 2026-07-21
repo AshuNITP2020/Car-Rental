@@ -1,5 +1,6 @@
 package com.carrental.agency;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.carrental.agency.dto.AgencyResponse;
 import com.carrental.agency.dto.CreateAgencyRequest;
 import com.carrental.agency.dto.UpdateAgencyRequest;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Tag(name = "Agencies", description = "Agency onboarding and profile (tenant-scoped \u201cme\u201d endpoints + public profile)")
 @RestController
 @RequestMapping("/api/agencies")
 public class AgencyController {

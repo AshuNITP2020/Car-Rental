@@ -1,5 +1,6 @@
 package com.carrental.document;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.carrental.document.dto.DocumentResponse;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,6 +20,7 @@ import java.util.List;
  *   POST /api/admin/documents/{id}/verify
  *   POST /api/admin/documents/{id}/reject
  */
+@Tag(name = "Admin documents", description = "Review queue: verify or reject KYC documents")
 @RestController
 @RequestMapping("/api/admin/documents")
 @PreAuthorize("hasRole('PLATFORM_ADMIN')")

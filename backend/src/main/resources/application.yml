@@ -83,6 +83,12 @@ server:
 
 # JWT settings. The dev secret is fine locally but MUST be overridden in any
 # real environment via JWT_SECRET (HS256 needs >= 32 bytes / 256 bits).
+springdoc:                                               # Swagger UI at /swagger-ui.html
+  swagger-ui:
+    tags-sorter: alpha
+    operations-sorter: method
+    display-request-duration: true
+
 app:
   jwt:
     secret: ${JWT_SECRET:dev-only-secret-please-change-this-to-a-long-random-value-32b+}

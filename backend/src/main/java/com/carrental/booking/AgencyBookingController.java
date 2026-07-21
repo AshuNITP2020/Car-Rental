@@ -1,5 +1,6 @@
 package com.carrental.booking;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.carrental.auth.TenantContext;
 import com.carrental.booking.dto.BookingResponse;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
  *   POST /api/agency/bookings/{id}/complete  → ACTIVE -> COMPLETED  (car returned)
  * Illegal transitions are rejected (409) by the state machine.
  */
+@Tag(name = "Agency bookings", description = "Agency-side booking operations: list, activate (hand over keys) and complete trips")
 @RestController
 @RequestMapping("/api/agency/bookings")
 public class AgencyBookingController {

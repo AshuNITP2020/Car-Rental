@@ -49,6 +49,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .dispatcherTypeMatchers(DispatcherType.ERROR, DispatcherType.FORWARD).permitAll()
                         .requestMatchers("/api/auth/**", "/api/health", "/actuator/**").permitAll()
+                        // API docs (springdoc): browsable without a token; the
+                        // endpoints themselves still require auth to invoke.
+                        .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/api/payments/webhook").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/media/**").permitAll()
                         // The backend also serves the built web app (SpaController +

@@ -1,5 +1,7 @@
 package com.carrental.admin;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.carrental.agency.AgencyRepository;
 import com.carrental.agency.AgencyService;
 import com.carrental.agency.AgencyStatus;
@@ -21,6 +23,7 @@ import java.util.List;
  *  - @PreAuthorize on the method (method-level guard)
  * A CUSTOMER token here yields 403.
  */
+@Tag(name = "Admin", description = "Platform administration: users and the agency approval queue (PENDING \u2192 ACTIVE/SUSPENDED)")
 @RestController
 @RequestMapping("/api/admin")
 public class AdminController {
@@ -50,6 +53,7 @@ public class AdminController {
     }
 
     /** Approve: the agency goes live and appears in customer searches. */
+    @Operation(summary = "Approve an agency — it becomes searchable")
     @PostMapping("/agencies/{id}/approve")
     @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public AgencyResponse approve(@PathVariable Long id) {
@@ -57,6 +61,7 @@ public class AdminController {
     }
 
     /** Suspend: immediately invisible to customers; existing bookings stand. */
+    @Operation(summary = "Suspend an agency — hidden from customers immediately")
     @PostMapping("/agencies/{id}/suspend")
     @PreAuthorize("hasRole('PLATFORM_ADMIN')")
     public AgencyResponse suspend(@PathVariable Long id) {

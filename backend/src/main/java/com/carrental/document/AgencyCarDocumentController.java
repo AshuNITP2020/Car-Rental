@@ -1,5 +1,6 @@
 package com.carrental.document;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.carrental.auth.AuthPrincipal;
 import com.carrental.auth.TenantContext;
 import com.carrental.document.dto.DocumentResponse;
@@ -24,6 +25,7 @@ import java.util.List;
  *   GET    /api/agency/cars/{carId}/documents
  *   DELETE /api/agency/cars/{carId}/documents/{docId}
  */
+@Tag(name = "Car documents", description = "Registration/insurance papers attached to fleet cars")
 @RestController
 @RequestMapping("/api/agency/cars/{carId}/documents")
 public class AgencyCarDocumentController {

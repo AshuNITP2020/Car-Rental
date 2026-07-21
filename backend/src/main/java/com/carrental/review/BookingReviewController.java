@@ -1,5 +1,6 @@
 package com.carrental.review;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.carrental.auth.AuthPrincipal;
 import com.carrental.review.dto.CreateReviewRequest;
 import com.carrental.review.dto.ReviewResponse;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
  *   POST /api/bookings/{bookingId}/review   (body: rating 1–5, optional comment)
  *   GET  /api/bookings/{bookingId}/review
  */
+@Tag(name = "Booking reviews", description = "Create/read the review attached to a booking")
 @RestController
 @RequestMapping("/api/bookings/{bookingId}/review")
 public class BookingReviewController {

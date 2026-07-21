@@ -1,5 +1,6 @@
 package com.carrental.car;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.carrental.auth.TenantContext;
 import com.carrental.car.dto.CarImageResponse;
 import org.springframework.http.HttpStatus;
@@ -24,6 +25,7 @@ import java.util.List;
  *   GET    /api/agency/cars/{carId}/images
  *   DELETE /api/agency/cars/{carId}/images/{imageId}
  */
+@Tag(name = "Fleet images", description = "Car photo upload, cover selection and removal")
 @RestController
 @RequestMapping("/api/agency/cars/{carId}/images")
 public class AgencyCarImageController {

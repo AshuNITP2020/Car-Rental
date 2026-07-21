@@ -1,5 +1,6 @@
 package com.carrental.payment;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
  * established by the signature, verified inside the active gateway.
  *   POST /api/payments/webhook
  */
+@Tag(name = "Payment webhooks", description = "Provider-to-server payment notifications (signature-verified)")
 @RestController
 public class PaymentWebhookController {
 

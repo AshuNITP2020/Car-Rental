@@ -1,5 +1,7 @@
 package com.carrental.search;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,6 +19,7 @@ import java.util.List;
  * an agency's cars never leave its own operating area. from/to are optional
  * but must come as a pair; with a window only cars actually free then count.
  */
+@Tag(name = "Trip search", description = "Find agencies that can run a whole trip (pickup + destination inside ONE operating area), filtered by car type/seats and dates")
 @RestController
 public class AgencySearchController {
 
@@ -26,6 +29,8 @@ public class AgencySearchController {
         this.search = search;
     }
 
+    @Operation(summary = "Agencies that can run the trip",
+            description = "With dlat/dlng, only agencies whose SINGLE operating area covers both ends match — an agency's cars never leave its zone. carType/seats drop cars that don't fit; from/to counts only cars free for the window.")
     @GetMapping("/api/agencies/search")
     public List<AgencySearchResult> search(
             @RequestParam double lat,

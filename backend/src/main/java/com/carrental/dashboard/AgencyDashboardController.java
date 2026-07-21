@@ -1,5 +1,6 @@
 package com.carrental.dashboard;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.carrental.auth.TenantContext;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
  * fleet, bookings, and revenue.
  *   GET /api/agency/dashboard
  */
+@Tag(name = "Agency dashboard", description = "Fleet/booking/revenue aggregates for the agency console")
 @RestController
 @RequestMapping("/api/agency/dashboard")
 public class AgencyDashboardController {
